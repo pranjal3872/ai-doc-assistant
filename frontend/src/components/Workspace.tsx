@@ -352,18 +352,19 @@ export default function Workspace({
             </div>
           ) : activePage ? (
             <div
-              style={{ width: `${(800 * zoom) / 100}px` }}
-              className="bg-surface-container border border-outline-variant/60 shadow-xl relative min-h-[900px] p-12 text-on-surface transition-all select-text rounded-lg"
+              style={{ width: `${Math.min(95, zoom)}%`, maxWidth: "850px" }}
+              className="bg-surface-container border border-outline-variant/60 shadow-xl relative min-h-[600px] p-6 md:p-8 text-on-surface transition-all select-text rounded-lg w-full break-words"
             >
-              <div className="absolute top-6 right-8 font-label-mono text-[10px] text-on-surface-variant/70">
-                PAGE {activePage.page} • INDEXED
-              </div>
-
-              <div className="space-y-6 mt-4">
-                <h2 className="font-h2 text-xl text-on-surface font-bold border-b border-outline-variant/40 pb-2">
+              <div className="flex justify-between items-center border-b border-outline-variant/40 pb-3 mb-4">
+                <h2 className="font-h2 text-lg text-on-surface font-bold">
                   Document Content
                 </h2>
+                <span className="font-label-mono text-[10px] text-on-surface-variant/70 bg-surface-container-high px-2 py-0.5 rounded">
+                  PAGE {activePage.page} • INDEXED
+                </span>
+              </div>
 
+              <div className="space-y-4">
                 {highlightChunks ? (
                   <div className="space-y-4">
                     {activePage.chunks.map((chunk, idx) => {
@@ -371,17 +372,17 @@ export default function Workspace({
                       return (
                         <div
                           key={idx}
-                          className={`relative group border-l-2 pl-3 py-1.5 rounded transition-all ${
+                          className={`relative group border-l-2 pl-3 pr-12 py-2 rounded transition-all break-words ${
                             isHighlighted
                               ? "border-amber-500 bg-amber-500/15 ring-2 ring-amber-400/80 shadow-lg shadow-amber-500/10 animate-pulse"
                               : "border-primary/40 hover:bg-surface-container-high/50"
                           }`}
                         >
                           <div className="absolute -inset-1 bg-primary/5 rounded-sm pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                          <p className={`text-body-base leading-relaxed ${isHighlighted ? "text-amber-800 dark:text-amber-200 font-semibold" : "text-on-surface"}`}>
+                          <p className={`text-body-base leading-relaxed break-words ${isHighlighted ? "text-amber-800 dark:text-amber-200 font-semibold" : "text-on-surface"}`}>
                             {chunk.text}
                           </p>
-                          <div className="absolute right-2 top-0.5 translate-x-1 border border-primary/30 bg-primary/10 text-primary text-[8px] px-1.5 py-0.5 rounded font-label-mono opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none shadow-sm">
+                          <div className="absolute right-2 top-2 border border-primary/30 bg-primary/10 text-primary text-[8px] px-1.5 py-0.5 rounded font-label-mono opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none shadow-sm">
                             CHUNK_ID: {chunk.id}
                           </div>
                         </div>
@@ -389,7 +390,7 @@ export default function Workspace({
                     })}
                   </div>
                 ) : (
-                  <p className="text-body-base leading-relaxed text-on-surface whitespace-pre-line">
+                  <p className="text-body-base leading-relaxed text-on-surface whitespace-pre-wrap break-words">
                     {activePage.text}
                   </p>
                 )}
