@@ -35,11 +35,14 @@ export default function Home() {
     }
   }, [darkMode]);
 
-  // Fetch documents from FastAPI on mount
+  // Fetch documents from API gateway or FastAPI fallback
   const fetchDocuments = async () => {
     setIsLoadingDocs(true);
     try {
-      const res = await fetch("http://127.0.0.1:8000/documents");
+      let res = await fetch("http://localhost:5000/api/rag/documents");
+      if (!res.ok) {
+        res = await fetch("http://127.0.0.1:8000/documents");
+      }
       if (res.ok) {
         const data = await res.json();
         setDocuments(data.documents || []);
@@ -69,10 +72,16 @@ export default function Home() {
     formData.append("file", file);
 
     try {
-      const res = await fetch("http://127.0.0.1:8000/upload", {
+      let res = await fetch("http://localhost:5000/api/rag/upload", {
         method: "POST",
         body: formData,
       });
+      if (!res.ok) {
+        res = await fetch("http://127.0.0.1:8000/upload", {
+          method: "POST",
+          body: formData,
+        });
+      }
 
       if (res.ok) {
         const data = await res.json();
@@ -110,9 +119,14 @@ export default function Home() {
     if (!confirm(`Are you sure you want to delete ${filename}?`)) return;
 
     try {
-      const res = await fetch(`http://127.0.0.1:8000/documents/${encodeURIComponent(filename)}`, {
+      let res = await fetch(`http://localhost:5000/api/rag/documents/${encodeURIComponent(filename)}`, {
         method: "DELETE",
       });
+      if (!res.ok) {
+        res = await fetch(`http://127.0.0.1:8000/documents/${encodeURIComponent(filename)}`, {
+          method: "DELETE",
+        });
+      }
 
       if (res.ok) {
         await fetchDocuments();
@@ -135,7 +149,7 @@ export default function Home() {
   // Handle send message/search queries
   const handleSendMessage = async (query: string): Promise<string> => {
     try {
-      const res = await fetch("http://127.0.0.1:8000/search", {
+      let res = await fetch("http://localhost:5000/api/rag/search", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -145,6 +159,19 @@ export default function Home() {
           filename: selectedDoc?.filename || null,
         }),
       });
+
+      if (!res.ok) {
+        res = await fetch("http://127.0.0.1:8000/search", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            query: query,
+            filename: selectedDoc?.filename || null,
+          }),
+        });
+      }
 
       if (res.ok) {
         const data = await res.json();
@@ -163,10 +190,8 @@ export default function Home() {
   };
 
   const handleNewSession = () => {
-    if (confirm("Reset current workspace session?")) {
-      setSelectedDoc(null);
-      setView("document_hub");
-    }
+    setSelectedDoc(null);
+    setView("document_hub");
   };
 
   if (authLoading) {
@@ -192,7 +217,7 @@ export default function Home() {
         setSelectedDoc={setSelectedDoc}
         onUpload={handleUpload}
         isUploading={isUploading}
-        onLogout={() => { logout(); router.replace("/login"); }}
+        onLogout={() => { logout(); router.replace("/"); }}
       />
 
       {/* Top Header */}
@@ -203,7 +228,7 @@ export default function Home() {
         setDarkMode={setDarkMode}
         onNewSession={handleNewSession}
         user={user}
-        onLogout={() => { logout(); router.replace("/login"); }}
+        onLogout={() => { logout(); router.replace("/"); }}
       />
 
       {/* Main Content Area */}
@@ -214,6 +239,7 @@ export default function Home() {
             onUpload={handleUpload}
             onDelete={handleDelete}
             isUploading={isUploading}
+            onOpenWorkspace={() => setView("workspace")}
             onSelectDoc={(doc) => {
               setSelectedDoc(doc);
               setView("workspace");

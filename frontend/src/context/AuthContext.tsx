@@ -54,22 +54,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await refreshUser();
   };
 
-  const logoutFn = () => {
+  const logoutFn = useCallback(() => {
     removeToken();
     setUser(null);
-  };
+  }, []);
+
+  const value = React.useMemo(
+    () => ({
+      user,
+      isAuthenticated: !!user,
+      isLoading,
+      login,
+      logout: logoutFn,
+      refreshUser,
+    }),
+    [user, isLoading, logoutFn, refreshUser]
+  );
 
   return (
-    <AuthContext.Provider
-      value={{
-        user,
-        isAuthenticated: !!user,
-        isLoading,
-        login,
-        logout: logoutFn,
-        refreshUser,
-      }}
-    >
+    <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
   );

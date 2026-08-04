@@ -2,6 +2,10 @@ const express = require('express');
 const passport = require('../config/passport');
 const { authenticateToken } = require('../middleware/auth');
 const {
+  registerUser,
+  loginUser,
+  forgotPassword,
+  resetPassword,
   googleCallback,
   sendOTP,
   verifyOTP,
@@ -12,6 +16,12 @@ const {
 } = require('../controllers/authController');
 
 const router = express.Router();
+
+// Email & Password Auth
+router.post('/register', registerUser);
+router.post('/login', loginUser);
+router.post('/forgot-password', forgotPassword);
+router.post('/reset-password', resetPassword);
 
 // Google OAuth
 router.get(

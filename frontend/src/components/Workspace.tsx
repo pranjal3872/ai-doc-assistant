@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
+import { ChatInput } from "./ChatInput";
 
 interface Chunk {
   id: number;
@@ -86,7 +87,10 @@ export default function Workspace({
     const fetchDocContent = async () => {
       setIsLoadingDoc(true);
       try {
-        const res = await fetch(`http://127.0.0.1:8000/documents/${encodeURIComponent(selectedDoc.filename)}`);
+        let res = await fetch(`http://localhost:5000/api/rag/documents/${encodeURIComponent(selectedDoc.filename)}`);
+        if (!res.ok) {
+          res = await fetch(`http://127.0.0.1:8000/documents/${encodeURIComponent(selectedDoc.filename)}`);
+        }
         if (res.ok) {
           const data = await res.json();
           setDocDetail(data);
@@ -265,23 +269,23 @@ export default function Workspace({
       {/* Left Pane: PDF Document Viewer */}
       <section className="flex-1 border-r border-outline-variant flex flex-col relative overflow-hidden bg-surface-low">
         {/* PDF Toolbar */}
-        <div className="h-12 border-b border-outline-variant bg-surface-container flex items-center justify-between px-6 sticky top-0 z-30 transition-colors">
+        <div className="h-12 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex items-center justify-between px-6 sticky top-0 z-30 transition-colors">
           <div className="flex items-center gap-4">
-            <span className="font-label-mono text-label-mono text-on-surface uppercase truncate max-w-[250px]">
+            <span className="font-label-mono text-label-mono text-slate-900 dark:text-slate-100 uppercase truncate max-w-[250px]">
               {selectedDoc ? selectedDoc.filename : "No Document Selected"}
             </span>
             {docDetail && (
               <>
-                <div className="h-4 w-px bg-outline-variant"></div>
-                <div className="flex items-center gap-2 bg-surface-container-high px-2 py-1 rounded border border-outline-variant">
+                <div className="h-4 w-px bg-slate-200 dark:bg-slate-800"></div>
+                <div className="flex items-center gap-2 bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded border border-slate-200 dark:border-slate-700">
                   <button
                     onClick={() => setCurrentPageIndex((prev) => Math.max(0, prev - 1))}
                     disabled={currentPageIndex === 0}
-                    className="material-symbols-outlined text-sm text-on-surface hover:text-primary cursor-pointer disabled:opacity-30"
+                    className="material-symbols-outlined text-sm text-slate-900 dark:text-slate-100 hover:text-primary cursor-pointer disabled:opacity-30"
                   >
                     chevron_left
                   </button>
-                  <span className="font-label-mono text-[12px] min-w-[70px] text-center text-on-surface">
+                  <span className="font-label-mono text-[12px] min-w-[70px] text-center text-slate-900 dark:text-slate-100">
                     Page {currentPageIndex + 1} / {docDetail.pages.length}
                   </span>
                   <button
@@ -291,7 +295,7 @@ export default function Workspace({
                       )
                     }
                     disabled={currentPageIndex === docDetail.pages.length - 1}
-                    className="material-symbols-outlined text-sm text-on-surface hover:text-primary cursor-pointer disabled:opacity-30"
+                    className="material-symbols-outlined text-sm text-slate-900 dark:text-slate-100 hover:text-primary cursor-pointer disabled:opacity-30"
                   >
                     chevron_right
                   </button>
@@ -305,29 +309,29 @@ export default function Workspace({
               <div className="flex items-center gap-3">
                 <button
                   onClick={() => setZoom((prev) => Math.max(50, prev - 25))}
-                  className="material-symbols-outlined text-lg text-on-surface hover:text-primary cursor-pointer"
+                  className="material-symbols-outlined text-lg text-slate-900 dark:text-slate-100 hover:text-primary cursor-pointer"
                 >
                   zoom_out
                 </button>
-                <span className="font-label-mono text-[12px] text-on-surface">{zoom}%</span>
+                <span className="font-label-mono text-[12px] text-slate-900 dark:text-slate-100">{zoom}%</span>
                 <button
                   onClick={() => setZoom((prev) => Math.min(200, prev + 25))}
-                  className="material-symbols-outlined text-lg text-on-surface hover:text-primary cursor-pointer"
+                  className="material-symbols-outlined text-lg text-slate-900 dark:text-slate-100 hover:text-primary cursor-pointer"
                 >
                   zoom_in
                 </button>
               </div>
 
-              <div className="h-4 w-px bg-outline-variant"></div>
+              <div className="h-4 w-px bg-slate-200 dark:bg-slate-800"></div>
 
               <label className="flex items-center gap-2 cursor-pointer group">
-                <span className="font-label-caps text-label-caps text-on-surface-variant group-hover:text-primary uppercase">
+                <span className="font-label-caps text-label-caps text-slate-600 dark:text-slate-400 group-hover:text-primary uppercase">
                   Highlight Chunks
                 </span>
                 <div
                   onClick={() => setHighlightChunks(!highlightChunks)}
                   className={`w-8 h-4 rounded-full relative transition-all ${
-                    highlightChunks ? "bg-primary" : "bg-surface-container-highest"
+                    highlightChunks ? "bg-primary" : "bg-slate-300 dark:bg-slate-700"
                   }`}
                 >
                   <div
@@ -342,9 +346,9 @@ export default function Workspace({
         </div>
 
         {/* PDF Page Canvas */}
-        <div className="flex-1 overflow-y-auto p-8 flex justify-center scroll-smooth bg-surface-lowest transition-colors">
+        <div className="flex-1 overflow-y-auto p-8 flex justify-center scroll-smooth bg-slate-100 dark:bg-slate-950 transition-colors">
           {isLoadingDoc ? (
-            <div className="flex flex-col items-center justify-center gap-2 text-on-surface-variant">
+            <div className="flex flex-col items-center justify-center gap-2 text-slate-500 dark:text-slate-400">
               <span className="material-symbols-outlined animate-spin text-primary text-3xl">
                 cyclone
               </span>
@@ -352,14 +356,14 @@ export default function Workspace({
             </div>
           ) : activePage ? (
             <div
-              style={{ width: `${Math.min(95, zoom)}%`, maxWidth: "850px" }}
-              className="bg-surface-container border border-outline-variant/60 shadow-xl relative min-h-[600px] p-6 md:p-8 text-on-surface transition-all select-text rounded-lg w-full break-words"
+              style={{ width: `${Math.min(98, zoom)}%`, maxWidth: "950px" }}
+              className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xl relative min-h-[600px] p-6 md:p-8 transition-all select-text rounded-lg w-full break-words"
             >
-              <div className="flex justify-between items-center border-b border-outline-variant/40 pb-3 mb-4">
-                <h2 className="font-h2 text-lg text-on-surface font-bold">
+              <div className="flex justify-between items-center border-b border-slate-200 dark:border-slate-800 pb-3 mb-4">
+                <h2 className="font-h2 text-lg text-slate-900 dark:text-slate-100 font-bold">
                   Document Content
                 </h2>
-                <span className="font-label-mono text-[10px] text-on-surface-variant/70 bg-surface-container-high px-2 py-0.5 rounded">
+                <span className="font-label-mono text-[10px] text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded font-semibold">
                   PAGE {activePage.page} • INDEXED
                 </span>
               </div>
@@ -372,25 +376,28 @@ export default function Workspace({
                       return (
                         <div
                           key={idx}
-                          className={`relative group border-l-2 pl-3 pr-12 py-2 rounded transition-all break-words ${
+                          role="region"
+                          tabIndex={0}
+                          aria-label={`Document Chunk #${chunk.id}`}
+                          className={`relative group border-l-4 p-4 pr-20 rounded-r-lg transition-all break-words shadow-sm focus:ring-2 focus:ring-primary/80 focus:outline-none ${
                             isHighlighted
-                              ? "border-amber-500 bg-amber-500/15 ring-2 ring-amber-400/80 shadow-lg shadow-amber-500/10 animate-pulse"
-                              : "border-primary/40 hover:bg-surface-container-high/50"
+                              ? "border-amber-500 bg-amber-50 dark:bg-amber-950/60 border-y border-r border-amber-300 dark:border-amber-800 ring-2 ring-amber-400/80 shadow-md"
+                              : "border-indigo-600 dark:border-indigo-500 bg-slate-50 dark:bg-slate-800/90 border-y border-r border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 hover:border-indigo-500"
                           }`}
                         >
                           <div className="absolute -inset-1 bg-primary/5 rounded-sm pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                          <p className={`text-body-base leading-relaxed break-words ${isHighlighted ? "text-amber-800 dark:text-amber-200 font-semibold" : "text-on-surface"}`}>
+                          <p className={`text-sm md:text-base leading-relaxed break-words whitespace-pre-wrap ${isHighlighted ? "text-amber-900 dark:text-amber-100 font-semibold" : "text-slate-800 dark:text-slate-100"}`}>
                             {chunk.text}
                           </p>
-                          <div className="absolute right-2 top-2 border border-primary/30 bg-primary/10 text-primary text-[8px] px-1.5 py-0.5 rounded font-label-mono opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none shadow-sm">
-                            CHUNK_ID: {chunk.id}
+                          <div className="absolute right-3 top-3 border border-indigo-200 dark:border-indigo-800 bg-indigo-50 dark:bg-indigo-950/70 text-indigo-700 dark:text-indigo-300 text-[9px] px-2 py-0.5 rounded font-label-mono opacity-90 group-hover:opacity-100 transition-opacity pointer-events-none shadow-sm font-semibold">
+                            CHUNK #{chunk.id}
                           </div>
                         </div>
                       );
                     })}
                   </div>
                 ) : (
-                  <p className="text-body-base leading-relaxed text-on-surface whitespace-pre-wrap break-words">
+                  <p className="text-body-base leading-relaxed text-slate-800 dark:text-slate-100 whitespace-pre-wrap break-words">
                     {activePage.text}
                   </p>
                 )}
@@ -431,8 +438,8 @@ export default function Workspace({
             <div
               className={`flex items-center gap-1.5 font-label-mono text-[11px] px-2.5 py-1 rounded border transition-all ${
                 currentTool === "retrieve_documents"
-                  ? "bg-indigo-900/30 border-indigo-500/50 text-indigo-300 animate-pulse font-bold"
-                  : "bg-slate-800/40 border-slate-700/50 text-slate-500 opacity-60"
+                  ? "bg-indigo-100 dark:bg-indigo-900/40 border-indigo-500 text-indigo-700 dark:text-indigo-300 animate-pulse font-bold"
+                  : "bg-slate-200/80 dark:bg-slate-800/60 border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-400 opacity-80 font-medium"
               }`}
             >
               <span className="material-symbols-outlined text-sm">find_in_page</span>
@@ -441,8 +448,8 @@ export default function Workspace({
             <div
               className={`flex items-center gap-1.5 font-label-mono text-[11px] px-2.5 py-1 rounded border transition-all ${
                 currentTool === "web_search (Tavily)"
-                  ? "bg-green-900/30 border-green-500/50 text-green-300 animate-pulse font-bold"
-                  : "bg-slate-800/40 border-slate-700/50 text-slate-500 opacity-60"
+                  ? "bg-emerald-100 dark:bg-emerald-900/40 border-emerald-500 text-emerald-700 dark:text-emerald-300 animate-pulse font-bold"
+                  : "bg-slate-200/80 dark:bg-slate-800/60 border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-400 opacity-80 font-medium"
               }`}
             >
               <span className="material-symbols-outlined text-sm">language</span>
@@ -511,27 +518,27 @@ export default function Workspace({
                 const text = selectedDoc ? `Summarize ${selectedDoc.filename}` : "Summarize the uploaded document";
                 setInputValue(text);
               }}
-              className="text-[10px] bg-primary/10 border border-primary/30 text-primary hover:bg-primary/20 px-2.5 py-1 rounded-full font-medium transition-all flex items-center gap-1 cursor-pointer"
+              className="text-[11px] bg-purple-500/15 border border-purple-500/40 text-purple-700 dark:text-purple-300 hover:bg-purple-500/25 px-3 py-1.5 rounded-full font-semibold transition-all flex items-center gap-1.5 cursor-pointer shadow-xs"
             >
-              <span className="material-symbols-outlined text-[12px]">auto_awesome</span>
+              <span className="material-symbols-outlined text-[14px]">auto_awesome</span>
               Summarize
             </button>
             <button
               onClick={() => {
                 setInputValue("Extract the key takeaways and technical skills");
               }}
-              className="text-[10px] bg-indigo-500/10 border border-indigo-500/30 text-indigo-300 hover:bg-indigo-500/20 px-2.5 py-1 rounded-full font-medium transition-all flex items-center gap-1 cursor-pointer"
+              className="text-[11px] bg-indigo-500/15 border border-indigo-500/40 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-500/25 px-3 py-1.5 rounded-full font-semibold transition-all flex items-center gap-1.5 cursor-pointer shadow-xs"
             >
-              <span className="material-symbols-outlined text-[12px]">key</span>
+              <span className="material-symbols-outlined text-[14px]">key</span>
               Key Takeaways
             </button>
             <button
               onClick={() => {
                 setInputValue("Search web for recent industry updates on this topic");
               }}
-              className="text-[10px] bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 hover:bg-emerald-500/20 px-2.5 py-1 rounded-full font-medium transition-all flex items-center gap-1 cursor-pointer"
+              className="text-[11px] bg-emerald-500/15 border border-emerald-500/40 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-500/25 px-3 py-1.5 rounded-full font-semibold transition-all flex items-center gap-1.5 cursor-pointer shadow-xs"
             >
-              <span className="material-symbols-outlined text-[12px]">language</span>
+              <span className="material-symbols-outlined text-[14px]">language</span>
               Web Search
             </button>
           </div>

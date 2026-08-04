@@ -1,10 +1,9 @@
-from langchain_core.messages import HumanMessage, AIMessage
-from services.llm_service import generate_answer
-from agent.react_agent import agent
-from fastapi import FastAPI, UploadFile, File
+from fastapi import FastAPI, UploadFile, File, Header
+from fastapi.responses import StreamingResponse
 from services.pdf_service import extract_text
 from utils.chunker import chunk_text
 from services.embedding_service import generate_embeddings
+from services.llm_service import generate_answer
 from database.qdrant import (
     create_collection,
     store_embeddings,
@@ -17,6 +16,7 @@ from pydantic import BaseModel
 from typing import Optional
 import shutil
 import os
+import json
 
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -37,6 +37,7 @@ chat_history = []
 class SearchRequest(BaseModel):
     query: str
     filename: Optional[str] = None
+    user_id: Optional[str] = None
 
 UPLOAD_DIR = "uploads"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
@@ -45,41 +46,49 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 @app.get("/")
 def home():
     return {
-        "message": "AI Document Assistant API "
+        "message": "AI Document Assistant API"
     }
 
 @app.get("/documents")
-async def documents():
-
-    docs = get_documents()
+async def documents(x_user_id: Optional[str] = Header(None)):
+    user_id = x_user_id or "default_user"
+    docs = get_documents(user_id=user_id)
 
     return {
         "documents": docs
     }
 
 @app.delete("/documents/{filename}")
-async def remove_document(filename: str):
-
-    delete_document(filename)
+async def remove_document(filename: str, x_user_id: Optional[str] = Header(None)):
+    user_id = x_user_id or "default_user"
+    delete_document(filename, user_id=user_id)
 
     return {
-        "message": f"{filename} deleted successfully."
+        "message": f"{filename} deleted successfully for user {user_id}."
     }
 
 @app.get("/documents/{filename}")
-async def get_document_content(filename: str):
+async def get_document_content(filename: str, x_user_id: Optional[str] = Header(None)):
     from database.qdrant import client, COLLECTION_NAME, Filter, FieldCondition, MatchValue
+
+    user_id = x_user_id or "default_user"
+    must_conditions = [
+        FieldCondition(
+            key="filename",
+            match=MatchValue(value=filename)
+        )
+    ]
+    if user_id:
+        must_conditions.append(
+            FieldCondition(
+                key="user_id",
+                match=MatchValue(value=user_id)
+            )
+        )
 
     response = client.scroll(
         collection_name=COLLECTION_NAME,
-        scroll_filter=Filter(
-            must=[
-                FieldCondition(
-                    key="filename",
-                    match=MatchValue(value=filename)
-                )
-            ]
-        ),
+        scroll_filter=Filter(must=must_conditions),
         limit=1000,
         with_payload=True,
         with_vectors=False
@@ -118,8 +127,8 @@ async def startup():
 
 
 @app.post("/upload")
-async def upload_pdf(file: UploadFile = File(...)):
-
+async def upload_pdf(file: UploadFile = File(...), x_user_id: Optional[str] = Header(None)):
+    user_id = x_user_id or "default_user"
     file_path = os.path.join(UPLOAD_DIR, file.filename)
 
     with open(file_path, "wb") as buffer:
@@ -148,7 +157,8 @@ async def upload_pdf(file: UploadFile = File(...)):
         all_chunks,
         embeddings,
         file.filename,
-        all_metadata
+        all_metadata,
+        user_id=user_id,
     )
 
     return {
@@ -160,8 +170,8 @@ async def upload_pdf(file: UploadFile = File(...)):
 
 
 @app.post("/search")
-async def search(request: SearchRequest):
-    global chat_history
+async def search(request: SearchRequest, x_user_id: Optional[str] = Header(None)):
+    user_id = request.user_id or x_user_id or "default_user"
     clean_q = request.query.strip().lower()
 
     # Handle simple conversational greetings
@@ -188,9 +198,9 @@ async def search(request: SearchRequest):
         query_emb = generate_embeddings([request.query])[0]
         target_fn = request.filename
 
-        results = search_similar_chunks(query_emb, filename=target_fn, limit=6)
+        results = search_similar_chunks(query_emb, filename=target_fn, limit=6, user_id=user_id)
         if not results and target_fn:
-            results = search_similar_chunks(query_emb, filename=None, limit=6)
+            results = search_similar_chunks(query_emb, filename=None, limit=6, user_id=user_id)
 
         if results:
             context_blocks = []
@@ -222,4 +232,4 @@ async def search(request: SearchRequest):
     return {
         "query": request.query,
         "answer": answer,
-    }
+    }

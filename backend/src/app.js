@@ -7,6 +7,7 @@ const passport = require('./config/passport');
 // Import routes
 const authRoutes = require('./routes/auth');
 const userRoutes = require('./routes/user');
+const ragRoutes = require('./routes/rag');
 
 const app = express();
 
@@ -50,6 +51,7 @@ app.get('/', (req, res) => {
 // API routes
 app.use('/api/auth', authRoutes);
 app.use('/api/user', userRoutes);
+app.use('/api/rag', ragRoutes);
 
 // Global error handler
 app.use((err, req, res, next) => {

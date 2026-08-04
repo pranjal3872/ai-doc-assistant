@@ -10,6 +10,7 @@ datasource db {
 model User {
   id         String   @id @default(cuid())
   email      String   @unique
+  password   String?
   name       String?
   profilePic String?
   provider   AuthProvider @default(EMAIL)
@@ -17,6 +18,8 @@ model User {
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
   sessions   Session[]
+  documents  Document[]
+  chatSessions ChatSession[]
 }
 
 model Session {
@@ -26,6 +29,41 @@ model Session {
   expiresAt DateTime
   createdAt DateTime @default(now())
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Document {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  filename    String
+  fileSize    Int      @default(0)
+  pagesCount  Int      @default(1)
+  chunksCount Int      @default(0)
+  createdAt   DateTime @default(now())
+
+  @@index([userId])
+}
+
+model ChatSession {
+  id        String        @id @default(cuid())
+  userId    String
+  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String        @default("New Session")
+  messages  ChatMessage[]
+  createdAt DateTime      @default(now())
+
+  @@index([userId])
+}
+
+model ChatMessage {
+  id        String      @id @default(cuid())
+  sessionId String
+  session   ChatSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  role      String      // user | assistant
+  content   String
+  createdAt DateTime    @default(now())
+
+  @@index([sessionId])
 }
 
 model OTP {
@@ -47,4 +85,6 @@ enum OTPType {
   LOGIN
   SIGNUP
   MAGIC_LINK
+  PASSWORD_RESET
 }
+

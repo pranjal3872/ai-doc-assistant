@@ -25,16 +25,16 @@ export default function LandingPage() {
 
         <div className="flex items-center gap-4">
           <Link
-            href="/login"
+            href="/login?mode=login"
             className="text-slate-300 hover:text-white text-sm font-semibold px-4 py-2 rounded-lg hover:bg-slate-800/60 transition-all"
           >
-            Sign In
+            Log In / Sign In
           </Link>
           <Link
-            href="/login"
+            href="/login?mode=register"
             className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white text-sm font-semibold px-5 py-2.5 rounded-xl shadow-lg shadow-blue-600/25 active:scale-95 transition-all flex items-center gap-2"
           >
-            <span>Get Started</span>
+            <span>Register</span>
             <span className="material-symbols-outlined text-base">arrow_forward</span>
           </Link>
         </div>

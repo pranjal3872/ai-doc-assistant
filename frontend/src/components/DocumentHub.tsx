@@ -14,6 +14,7 @@ interface DocumentHubProps {
   onDelete: (filename: string) => Promise<void>;
   isUploading: boolean;
   onSelectDoc: (doc: Document) => void;
+  onOpenWorkspace?: () => void;
 }
 
 export default function DocumentHub({
@@ -22,6 +23,7 @@ export default function DocumentHub({
   onDelete,
   isUploading,
   onSelectDoc,
+  onOpenWorkspace,
 }: DocumentHubProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [dragActive, setDragActive] = useState(false);
@@ -81,14 +83,25 @@ export default function DocumentHub({
               Upload, inspect, and manage your documents for AI semantic RAG analysis.
             </p>
           </div>
-          <button
-            onClick={handleBrowseFiles}
-            disabled={isUploading}
-            className="bg-primary text-on-primary font-label-caps text-[11px] py-2.5 px-5 rounded flex items-center justify-center gap-2 hover:opacity-95 active:scale-95 transition-all font-bold disabled:opacity-50"
-          >
-            <span className="material-symbols-outlined text-base">upload_file</span>
-            Upload Document
-          </button>
+          <div className="flex items-center gap-3">
+            {onOpenWorkspace && (
+              <button
+                onClick={onOpenWorkspace}
+                className="bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-100 font-label-caps text-[11px] py-2.5 px-4 rounded flex items-center justify-center gap-2 hover:bg-slate-200 dark:hover:bg-slate-700 active:scale-95 transition-all font-bold"
+              >
+                <span className="material-symbols-outlined text-base">dashboard</span>
+                Workspace
+              </button>
+            )}
+            <button
+              onClick={handleBrowseFiles}
+              disabled={isUploading}
+              className="bg-primary text-on-primary font-label-caps text-[11px] py-2.5 px-5 rounded flex items-center justify-center gap-2 hover:opacity-95 active:scale-95 transition-all font-bold disabled:opacity-50"
+            >
+              <span className="material-symbols-outlined text-base">upload_file</span>
+              Upload Document
+            </button>
+          </div>
         </div>
 
         {/* Stats Grid */}
@@ -281,16 +294,16 @@ export default function DocumentHub({
 
       {/* Side-by-Side Comparison Modal */}
       {showCompareModal && selectedForCompare.length === 2 && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-md flex items-center justify-center z-[100] p-6">
-          <div className="bg-slate-900 border border-slate-700 rounded-2xl max-w-4xl w-full p-6 text-slate-200 shadow-2xl relative animate-in fade-in zoom-in duration-200">
-            <div className="flex justify-between items-center pb-4 border-b border-slate-800">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center z-[100] p-6">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-4xl w-full p-6 text-slate-900 dark:text-slate-100 shadow-2xl relative animate-in fade-in zoom-in duration-200">
+            <div className="flex justify-between items-center pb-4 border-b border-slate-200 dark:border-slate-800">
               <div className="flex items-center gap-2">
-                <span className="material-symbols-outlined text-indigo-400 text-2xl">compare_arrows</span>
-                <h3 className="font-h2 text-lg font-bold text-white">Side-by-Side Document Comparison</h3>
+                <span className="material-symbols-outlined text-primary text-2xl">compare_arrows</span>
+                <h3 className="font-h2 text-lg font-bold text-slate-900 dark:text-white">Side-by-Side Document Comparison</h3>
               </div>
               <button
                 onClick={() => setShowCompareModal(false)}
-                className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition-colors"
+                className="text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
               >
                 <span className="material-symbols-outlined">close</span>
               </button>
@@ -300,26 +313,26 @@ export default function DocumentHub({
               {selectedForCompare.map((filename, i) => {
                 const doc = documents.find((d) => d.filename === filename);
                 return (
-                  <div key={i} className="bg-slate-950 p-5 rounded-xl border border-slate-800 space-y-4">
-                    <div className="flex items-center gap-2 text-indigo-400 font-bold border-b border-slate-800 pb-2">
+                  <div key={i} className="bg-slate-50 dark:bg-slate-950 p-5 rounded-xl border border-slate-200 dark:border-slate-800 space-y-4">
+                    <div className="flex items-center gap-2 text-primary font-bold border-b border-slate-200 dark:border-slate-800 pb-2">
                       <span className="material-symbols-outlined">description</span>
                       <span className="truncate text-sm">{filename}</span>
                     </div>
 
                     <div className="grid grid-cols-2 gap-2 text-xs font-mono">
-                      <div className="bg-slate-900 p-2.5 rounded border border-slate-800">
-                        <span className="text-slate-500 uppercase text-[9px] block">Pages</span>
-                        <span className="text-white font-bold">{doc?.pages || 0}</span>
+                      <div className="bg-white dark:bg-slate-900 p-2.5 rounded border border-slate-200 dark:border-slate-800">
+                        <span className="text-slate-500 uppercase text-[9px] block font-semibold">Pages</span>
+                        <span className="text-slate-900 dark:text-white font-bold">{doc?.pages || 0}</span>
                       </div>
-                      <div className="bg-slate-900 p-2.5 rounded border border-slate-800">
-                        <span className="text-slate-500 uppercase text-[9px] block">Vector Chunks</span>
-                        <span className="text-white font-bold">{doc?.chunks || 0}</span>
+                      <div className="bg-white dark:bg-slate-900 p-2.5 rounded border border-slate-200 dark:border-slate-800">
+                        <span className="text-slate-500 uppercase text-[9px] block font-semibold">Vector Chunks</span>
+                        <span className="text-slate-900 dark:text-white font-bold">{doc?.chunks || 0}</span>
                       </div>
                     </div>
 
-                    <div className="p-3 bg-slate-900/50 rounded border border-slate-800/80 text-xs text-slate-300 space-y-2">
-                      <p className="font-bold text-slate-200">Semantic Overview</p>
-                      <p className="text-[11px] leading-relaxed text-slate-400">
+                    <div className="p-3 bg-white dark:bg-slate-900/60 rounded border border-slate-200 dark:border-slate-800/80 text-xs space-y-2">
+                      <p className="font-bold text-slate-900 dark:text-slate-200">Semantic Overview</p>
+                      <p className="text-[11px] leading-relaxed text-slate-600 dark:text-slate-400">
                         Parsed and indexed into Qdrant collection. Ready for cross-document query comparison.
                       </p>
                     </div>
@@ -331,7 +344,7 @@ export default function DocumentHub({
                           setShowCompareModal(false);
                         }
                       }}
-                      className="w-full bg-indigo-600/20 border border-indigo-500/40 text-indigo-300 hover:bg-indigo-600/30 text-xs font-bold py-2 rounded-lg transition-all"
+                      className="w-full bg-primary/10 border border-primary/30 text-primary hover:bg-primary/20 text-xs font-bold py-2 rounded-lg transition-all"
                     >
                       Open in Workspace
                     </button>
@@ -340,10 +353,10 @@ export default function DocumentHub({
               })}
             </div>
 
-            <div className="pt-4 border-t border-slate-800 flex justify-end">
+            <div className="pt-4 border-t border-slate-200 dark:border-slate-800 flex justify-end">
               <button
                 onClick={() => setShowCompareModal(false)}
-                className="bg-slate-800 hover:bg-slate-700 text-white font-bold px-4 py-2 rounded-lg text-xs transition-all"
+                className="bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-900 dark:text-white font-bold px-4 py-2 rounded-lg text-xs transition-all"
               >
                 Close Comparison
               </button>

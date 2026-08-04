@@ -47,34 +47,31 @@ export default function Header({
   };
 
   return (
-    <header className="bg-surface-lowest text-on-surface border-b border-outline-variant fixed top-0 left-0 right-0 h-12 flex justify-between items-center px-6 ml-sidebar z-40 transition-colors">
-      <div className="flex items-center gap-8">
-        <span className="font-h2 text-lg font-black text-primary tracking-tight">
-          AI Doc Assistant
-        </span>
-        <nav className="hidden md:flex gap-6 h-full items-center">
-          <button
-            onClick={() => setView("workspace")}
-            className={`font-label-caps text-[11px] pb-1 uppercase tracking-wider transition-all h-full ${
-              currentView === "workspace"
-                ? "text-primary border-b-2 border-primary font-bold"
-                : "text-on-surface-variant hover:text-primary"
-            }`}
-          >
-            Workspace
-          </button>
-          <button
-            onClick={() => setView("document_hub")}
-            className={`font-label-caps text-[11px] pb-1 uppercase tracking-wider transition-all h-full ${
-              currentView === "document_hub"
-                ? "text-primary border-b-2 border-primary font-bold"
-                : "text-on-surface-variant hover:text-primary"
-            }`}
-          >
-            Document Hub
-          </button>
-        </nav>
-      </div>
+    <header className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white border-b border-slate-200 dark:border-slate-800 fixed top-0 left-0 right-0 h-12 flex justify-between items-center px-6 ml-sidebar z-40 transition-colors">
+      <nav className="flex gap-6 h-full items-center">
+        <button
+          onClick={() => setView("workspace")}
+          className={`font-label-caps text-xs uppercase tracking-wider transition-all h-full flex items-center gap-2 cursor-pointer px-1 ${
+            currentView === "workspace"
+              ? "text-primary border-b-2 border-primary font-bold"
+              : "text-slate-600 dark:text-slate-400 hover:text-primary font-semibold"
+          }`}
+        >
+          <span className="material-symbols-outlined text-base">dashboard</span>
+          Workspace
+        </button>
+        <button
+          onClick={() => setView("document_hub")}
+          className={`font-label-caps text-xs uppercase tracking-wider transition-all h-full flex items-center gap-2 cursor-pointer px-1 ${
+            currentView === "document_hub"
+              ? "text-primary border-b-2 border-primary font-bold"
+              : "text-slate-600 dark:text-slate-400 hover:text-primary font-semibold"
+          }`}
+        >
+          <span className="material-symbols-outlined text-base">grid_view</span>
+          Document Hub
+        </button>
+      </nav>
 
       <div className="flex items-center gap-4">
         {/* Search */}
