@@ -29,7 +29,12 @@ router.get('/documents', async (req, res) => {
     res.json(data);
   } catch (error) {
     console.error('Error fetching documents from RAG service:', error.message);
-    res.status(500).json({ error: 'Failed to fetch documents from RAG service', documents: [] });
+    res.status(500).json({
+      error: `Failed to fetch documents from RAG service (${RAG_SERVICE_URL})`,
+      targetUrl: RAG_SERVICE_URL,
+      details: error.message,
+      documents: []
+    });
   }
 });
 

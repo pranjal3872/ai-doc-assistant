@@ -9,8 +9,12 @@ from qdrant_client.models import (
     MatchValue,
 )
 
-# In-memory Qdrant database
-client = QdrantClient(path="./qdrant_db")
+# Qdrant database initialization with resilient fallback
+try:
+    client = QdrantClient(path="./qdrant_db")
+except Exception as e:
+    print(f"Warning: Could not initialize local path ./qdrant_db ({e}), falling back to in-memory Qdrant client.")
+    client = QdrantClient(location=":memory:")
 
 COLLECTION_NAME = "documents"
 
