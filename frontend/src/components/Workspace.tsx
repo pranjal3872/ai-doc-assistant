@@ -277,7 +277,12 @@ export default function Workspace({
       });
     };
 
-    const lines = text.split("\n");
+    // Pre-process unformatted text to force newlines before section headers and list items
+    let formattedText = text;
+    formattedText = formattedText.replace(/([^\n])\s*(\*\*[^*:]+:\*\*)/g, "$1\n\n$2");
+    formattedText = formattedText.replace(/([^\n])\s*-\s+/g, "$1\n- ");
+
+    const lines = formattedText.split("\n");
     return (
       <div className="space-y-1.5 leading-relaxed text-sm">
         {lines.map((line, lineIdx) => {

@@ -17,11 +17,17 @@ def generate_answer(question, context):
 
     prompt = f"""You are an expert AI document assistant. Answer the user's question clearly based ONLY on the provided context.
 
-Formatting guidelines:
-- Present the information in a clean, highly readable, structured format.
-- Use bold titles (e.g., **Education:**) on separate new lines.
-- Use clear bullet points (- Item) for lists and key details.
-- Add line breaks between different sections.
+CRITICAL FORMATTING INSTRUCTIONS:
+- Break down your answer into clear, distinct sections.
+- Put every section heading on its own line using bold format, like:
+  **Education:**
+  **Technical Skills:**
+  **Experience:**
+  **Projects:**
+  **Certifications:**
+- Under each section heading, format every item as a separate bullet point starting with a dash (`- `).
+- Insert a blank empty line between different sections.
+- Never concatenate multiple sections into a single continuous paragraph.
 
 Context:
 {context}
