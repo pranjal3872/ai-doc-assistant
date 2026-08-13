@@ -15,6 +15,9 @@ interface Document {
   chunks?: number;
 }
 
+const API_GATEWAY_URL = process.env.NEXT_PUBLIC_API_URL ? `${process.env.NEXT_PUBLIC_API_URL}/api/rag` : "http://localhost:5000/api/rag";
+const DIRECT_RAG_URL = process.env.NEXT_PUBLIC_RAG_URL || "http://127.0.0.1:8000";
+
 export default function Home() {
   const { user, isAuthenticated, isLoading: authLoading, logout } = useAuth();
   const router = useRouter();
@@ -39,9 +42,9 @@ export default function Home() {
   const fetchDocuments = async () => {
     setIsLoadingDocs(true);
     try {
-      let res = await fetch("http://localhost:5000/api/rag/documents");
+      let res = await fetch(`${API_GATEWAY_URL}/documents`);
       if (!res.ok) {
-        res = await fetch("http://127.0.0.1:8000/documents");
+        res = await fetch(`${DIRECT_RAG_URL}/documents`);
       }
       if (res.ok) {
         const data = await res.json();
@@ -72,12 +75,12 @@ export default function Home() {
     formData.append("file", file);
 
     try {
-      let res = await fetch("http://localhost:5000/api/rag/upload", {
+      let res = await fetch(`${API_GATEWAY_URL}/upload`, {
         method: "POST",
         body: formData,
       });
       if (!res.ok) {
-        res = await fetch("http://127.0.0.1:8000/upload", {
+        res = await fetch(`${DIRECT_RAG_URL}/upload`, {
           method: "POST",
           body: formData,
         });
@@ -119,11 +122,11 @@ export default function Home() {
     if (!confirm(`Are you sure you want to delete ${filename}?`)) return;
 
     try {
-      let res = await fetch(`http://localhost:5000/api/rag/documents/${encodeURIComponent(filename)}`, {
+      let res = await fetch(`${API_GATEWAY_URL}/documents/${encodeURIComponent(filename)}`, {
         method: "DELETE",
       });
       if (!res.ok) {
-        res = await fetch(`http://127.0.0.1:8000/documents/${encodeURIComponent(filename)}`, {
+        res = await fetch(`${DIRECT_RAG_URL}/documents/${encodeURIComponent(filename)}`, {
           method: "DELETE",
         });
       }
@@ -149,7 +152,7 @@ export default function Home() {
   // Handle send message/search queries
   const handleSendMessage = async (query: string): Promise<string> => {
     try {
-      let res = await fetch("http://localhost:5000/api/rag/search", {
+      let res = await fetch(`${API_GATEWAY_URL}/search`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -161,7 +164,7 @@ export default function Home() {
       });
 
       if (!res.ok) {
-        res = await fetch("http://127.0.0.1:8000/search", {
+        res = await fetch(`${DIRECT_RAG_URL}/search`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",

@@ -1,0 +1,61 @@
+version: '3.8'
+
+services:
+  rag-service:
+    build:
+      context: ./rag-service
+      dockerfile: Dockerfile
+    container_name: ai-doc-rag-service
+    ports:
+      - "8000:8000"
+    environment:
+      - GROQ_API_KEY=${GROQ_API_KEY}
+      - TAVILY_API_KEY=${TAVILY_API_KEY}
+    volumes:
+      - rag_uploads:/app/uploads
+      - qdrant_data:/app/qdrant_db
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: ai-doc-backend
+    ports:
+      - "5000:5000"
+    environment:
+      - PORT=5000
+      - DATABASE_URL=${DATABASE_URL}
+      - RAG_SERVICE_URL=http://rag-service:8000
+      - FRONTEND_URL=${FRONTEND_URL:-http://localhost:3000}
+      - SESSION_SECRET=${SESSION_SECRET:-super-secret-session-key}
+      - JWT_SECRET=${JWT_SECRET:-super-secret-jwt-key}
+      - NODE_ENV=production
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+      - GOOGLE_CALLBACK_URL=${GOOGLE_CALLBACK_URL}
+      - SMTP_USER=${SMTP_USER}
+      - SMTP_PASS=${SMTP_PASS}
+    depends_on:
+      - rag-service
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-http://localhost:5000}
+        - NEXT_PUBLIC_RAG_URL=${NEXT_PUBLIC_RAG_URL:-http://localhost:8000}
+    container_name: ai-doc-frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - PORT=3000
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  rag_uploads:
+  qdrant_data:

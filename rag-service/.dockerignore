@@ -1,0 +1,10 @@
+.venv
+__pycache__
+*.pyc
+uploads
+qdrant_db
+.env
+.git
+.gitignore
+Dockerfile
+.dockerignore

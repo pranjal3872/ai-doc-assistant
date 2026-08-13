@@ -31,6 +31,9 @@ interface Document {
   chunks?: number;
 }
 
+const API_GATEWAY_URL = process.env.NEXT_PUBLIC_API_URL ? `${process.env.NEXT_PUBLIC_API_URL}/api/rag` : "http://localhost:5000/api/rag";
+const DIRECT_RAG_URL = process.env.NEXT_PUBLIC_RAG_URL || "http://127.0.0.1:8000";
+
 interface WorkspaceProps {
   selectedDoc: Document | null;
   documents: Document[];
@@ -87,9 +90,9 @@ export default function Workspace({
     const fetchDocContent = async () => {
       setIsLoadingDoc(true);
       try {
-        let res = await fetch(`http://localhost:5000/api/rag/documents/${encodeURIComponent(selectedDoc.filename)}`);
+        let res = await fetch(`${API_GATEWAY_URL}/documents/${encodeURIComponent(selectedDoc.filename)}`);
         if (!res.ok) {
-          res = await fetch(`http://127.0.0.1:8000/documents/${encodeURIComponent(selectedDoc.filename)}`);
+          res = await fetch(`${DIRECT_RAG_URL}/documents/${encodeURIComponent(selectedDoc.filename)}`);
         }
         if (res.ok) {
           const data = await res.json();
