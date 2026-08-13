@@ -26,9 +26,16 @@ router.post('/reset-password', resetPassword);
 // Google OAuth
 router.get(
   '/google',
-  passport.authenticate('google', {
-    scope: ['profile', 'email'],
-  })
+  (req, res, next) => {
+    if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
+      return res.status(400).json({
+        error: 'Google OAuth is not configured. Please set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET environment variables.',
+      });
+    }
+    passport.authenticate('google', {
+      scope: ['profile', 'email'],
+    })(req, res, next);
+  }
 );
 
 router.get(
