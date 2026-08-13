@@ -4,7 +4,9 @@ const multer = require('multer');
 const upload = multer({ dest: 'uploads/' });
 const fs = require('fs');
 
-const RAG_SERVICE_URL = process.env.RAG_SERVICE_URL || 'http://127.0.0.1:8000';
+let rawRagUrl = (process.env.RAG_SERVICE_URL || 'http://127.0.0.1:8000').trim();
+rawRagUrl = rawRagUrl.replace(/^RAG_SERVICE_URL\s*=\s*/i, '').trim();
+const RAG_SERVICE_URL = rawRagUrl;
 
 // Helper to get user ID from request session/token or default
 const getUserId = (req) => {
