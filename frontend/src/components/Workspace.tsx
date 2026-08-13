@@ -233,36 +233,83 @@ export default function Workspace({
     }
   };
 
-  // Parsing text to render interactive citation pills
+  // Enhanced response renderer supporting markdown bold headers, bullets, line breaks, and interactive citation pills
   const renderResponseText = (text: string) => {
-    // Regex matches [something] or [filename.pdf • Page X]
-    const parts = text.split(/(\[[^\]]+\])/g);
-    return parts.map((part, idx) => {
-      if (part.startsWith("[") && part.endsWith("]")) {
-        const cleaned = part.slice(1, -1);
-        return (
-          <span
-            key={idx}
-            onClick={() => handleCitationClick(cleaned)}
-            onMouseEnter={(e) => {
-              const rect = e.currentTarget.getBoundingClientRect();
-              setTooltip({
-                show: true,
-                text: `Excerpt source from Qdrant: "${cleaned}". Click to navigate to this page in the document viewer.`,
-                label: cleaned.toUpperCase(),
-                x: rect.left,
-                y: rect.top - 10,
-              });
-            }}
-            onMouseLeave={() => setTooltip((prev) => ({ ...prev, show: false }))}
-            className="inline-flex items-center gap-1 bg-primary/15 px-2 py-0.5 rounded-full text-[10px] font-label-mono text-primary cursor-pointer hover:bg-primary/25 transition-all mx-0.5"
-          >
-            {part}
-          </span>
-        );
-      }
-      return <span key={idx}>{part}</span>;
-    });
+    const renderInlineCitations = (lineText: string) => {
+      const parts = lineText.split(/(\[[^\]]+\])/g);
+      return parts.map((part, idx) => {
+        if (part.startsWith("[") && part.endsWith("]")) {
+          const cleaned = part.slice(1, -1);
+          return (
+            <span
+              key={idx}
+              onClick={() => handleCitationClick(cleaned)}
+              onMouseEnter={(e) => {
+                const rect = e.currentTarget.getBoundingClientRect();
+                setTooltip({
+                  show: true,
+                  text: `Excerpt source from Qdrant: "${cleaned}". Click to navigate to this page in the document viewer.`,
+                  label: cleaned.toUpperCase(),
+                  x: rect.left,
+                  y: rect.top - 10,
+                });
+              }}
+              onMouseLeave={() => setTooltip((prev) => ({ ...prev, show: false }))}
+              className="inline-flex items-center gap-1 bg-primary/15 px-2 py-0.5 rounded-full text-[10px] font-label-mono text-primary cursor-pointer hover:bg-primary/25 transition-all mx-1 font-semibold"
+            >
+              {part}
+            </span>
+          );
+        }
+
+        const subParts = part.split(/(\*\*[^*]+\*\*)/g);
+        return subParts.map((sub, sIdx) => {
+          if (sub.startsWith("**") && sub.endsWith("**")) {
+            const boldText = sub.slice(2, -2);
+            return (
+              <strong key={sIdx} className="font-bold text-primary dark:text-sky-300">
+                {boldText}
+              </strong>
+            );
+          }
+          return <span key={sIdx}>{sub}</span>;
+        });
+      });
+    };
+
+    const lines = text.split("\n");
+    return (
+      <div className="space-y-1.5 leading-relaxed text-sm">
+        {lines.map((line, lineIdx) => {
+          const trimmed = line.trim();
+          if (!trimmed) return <div key={lineIdx} className="h-1" />;
+
+          if (trimmed.startsWith("**") && (trimmed.endsWith("**") || trimmed.includes(":**"))) {
+            return (
+              <div key={lineIdx} className="font-bold text-sm text-primary dark:text-sky-300 mt-2.5 mb-1 border-b border-outline-variant/30 pb-0.5">
+                {renderInlineCitations(trimmed)}
+              </div>
+            );
+          }
+
+          if (trimmed.startsWith("- ") || trimmed.startsWith("* ") || trimmed.startsWith("• ")) {
+            const bulletContent = trimmed.replace(/^[-*•]\s+/, "");
+            return (
+              <div key={lineIdx} className="flex items-start gap-2 pl-1.5 my-0.5">
+                <span className="text-primary text-[10px] mt-1 select-none">●</span>
+                <div className="flex-1">{renderInlineCitations(bulletContent)}</div>
+              </div>
+            );
+          }
+
+          return (
+            <div key={lineIdx} className="my-0.5">
+              {renderInlineCitations(line)}
+            </div>
+          );
+        })}
+      </div>
+    );
   };
 
   const activePage = docDetail?.pages[currentPageIndex];

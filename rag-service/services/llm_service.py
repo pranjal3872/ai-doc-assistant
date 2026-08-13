@@ -15,8 +15,13 @@ def generate_answer(question, context):
     if not client:
         return "Simulated response: The profit margin for 2023 was 18.2%, driven by digital services (42% of earnings) and logistics AI workflows [financial_report_2023.pdf • Page 3]."
 
-    prompt = f"""
-You are an AI assistant that answers questions using only the provided context.
+    prompt = f"""You are an expert AI document assistant. Answer the user's question clearly based ONLY on the provided context.
+
+Formatting guidelines:
+- Present the information in a clean, highly readable, structured format.
+- Use bold titles (e.g., **Education:**) on separate new lines.
+- Use clear bullet points (- Item) for lists and key details.
+- Add line breaks between different sections.
 
 Context:
 {context}
