@@ -29,10 +29,13 @@ Render will read the [`render.yaml`](file:///c:/projects/ai-doc-assistant/render
 
    #### For `ai-doc-backend`:
    - `DATABASE_URL`: `<your_neon_postgresql_database_url>`
+   - `BREVO_API_KEY`: `<your_brevo_api_key>` *(Recommended: Brevo API uses HTTPS port 443, bypassing Render SMTP port blocking)*
+   - `SENDER_EMAIL`: `<your_verified_brevo_sender_email>`
    - `GOOGLE_CLIENT_ID`: `<your_google_client_id>`
    - `GOOGLE_CLIENT_SECRET`: `<your_google_client_secret>`
-   - `SMTP_USER`: `<your_smtp_email>`
-   - `SMTP_PASS`: `<your_smtp_password>`
+   - `SMTP_USER`: `<your_smtp_email>` *(Optional fallback)*
+   - `SMTP_PASS`: `<your_smtp_password>` *(Optional fallback)*
+
 
 6. Click **Apply**. Render will deploy both services!
 

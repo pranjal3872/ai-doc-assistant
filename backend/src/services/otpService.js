@@ -50,51 +50,32 @@ async function verifyOTPCode(email, code) {
   return otp;
 }
 
+const { sendEmail } = require('./emailService');
+
 async function sendOTPEmail(email, code) {
   // Always log OTP to console for debugging
   console.log('\n========================================');
   console.log(`  OTP Code for ${email}: ${code}`);
   console.log('========================================\n');
 
-  // Send real email if SMTP is configured
-  if (process.env.SMTP_USER && process.env.SMTP_PASS) {
-    const nodemailer = require('nodemailer');
+  const html = `
+    <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 480px; margin: 0 auto; padding: 32px; background: #f8f9fa; border-radius: 12px;">
+      <h2 style="color: #1a1a2e; margin-bottom: 8px;">AI Doc Assistant</h2>
+      <p style="color: #555; font-size: 15px;">Use the code below to sign in. It expires in 10 minutes.</p>
+      <div style="background: #1a1a2e; color: #fff; font-size: 32px; letter-spacing: 8px; text-align: center; padding: 20px; border-radius: 8px; margin: 24px 0; font-weight: bold;">
+        ${code}
+      </div>
+      <p style="color: #888; font-size: 13px;">If you didn't request this, you can safely ignore this email.</p>
+    </div>
+  `;
 
-    const transporter = nodemailer.createTransport({
-      service: 'gmail',
-      auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS,
-      },
-    });
+  await sendEmail({
+    to: email,
+    subject: 'Your OTP Code - AI Doc Assistant',
+    html,
+  });
 
-    try {
-      await transporter.sendMail({
-        from: `"AI Doc Assistant" <${process.env.SMTP_USER}>`,
-        to: email,
-        subject: 'Your OTP Code - AI Doc Assistant',
-        html: `
-          <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 480px; margin: 0 auto; padding: 32px; background: #f8f9fa; border-radius: 12px;">
-            <h2 style="color: #1a1a2e; margin-bottom: 8px;">AI Doc Assistant</h2>
-            <p style="color: #555; font-size: 15px;">Use the code below to sign in. It expires in 10 minutes.</p>
-            <div style="background: #1a1a2e; color: #fff; font-size: 32px; letter-spacing: 8px; text-align: center; padding: 20px; border-radius: 8px; margin: 24px 0; font-weight: bold;">
-              ${code}
-            </div>
-            <p style="color: #888; font-size: 13px;">If you didn't request this, you can safely ignore this email.</p>
-          </div>
-        `,
-      });
-      console.log(`  ✅ OTP email sent to ${email}`);
-      return true;
-    } catch (err) {
-      console.error('  ❌ Failed to send OTP email:', err.message);
-      return true; // Don't fail the request — OTP is still in the DB
-    }
-  } else {
-    console.log('  ⚠️  SMTP not configured — OTP logged to console only');
-    console.log('  Set SMTP_USER and SMTP_PASS in .env to enable email delivery');
-    return true;
-  }
+  return true;
 }
 
 async function sendMagicLinkEmail(email, token) {
@@ -107,49 +88,29 @@ async function sendMagicLinkEmail(email, token) {
   console.log(`  ${link}`);
   console.log('========================================\n');
 
-  // Send real email if SMTP is configured
-  if (process.env.SMTP_USER && process.env.SMTP_PASS) {
-    const nodemailer = require('nodemailer');
+  const html = `
+    <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 480px; margin: 0 auto; padding: 32px; background: #f8f9fa; border-radius: 12px;">
+      <h2 style="color: #1a1a2e; margin-bottom: 8px;">AI Doc Assistant</h2>
+      <p style="color: #555; font-size: 15px;">Click the button below to sign in. This link expires in 15 minutes.</p>
+      <div style="text-align: center; margin: 24px 0;">
+        <a href="${link}" style="background: #1a1a2e; color: #fff; font-size: 16px; text-decoration: none; padding: 14px 32px; border-radius: 8px; display: inline-block; font-weight: bold;">
+          Sign In
+        </a>
+      </div>
+      <p style="color: #888; font-size: 13px;">If the button doesn't work, copy and paste this link:<br/>
+        <a href="${link}" style="color: #4a6cf7; word-break: break-all;">${link}</a>
+      </p>
+      <p style="color: #888; font-size: 13px;">If you didn't request this, you can safely ignore this email.</p>
+    </div>
+  `;
 
-    const transporter = nodemailer.createTransport({
-      service: 'gmail',
-      auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS,
-      },
-    });
+  await sendEmail({
+    to: email,
+    subject: 'Your Magic Link - AI Doc Assistant',
+    html,
+  });
 
-    try {
-      await transporter.sendMail({
-        from: `"AI Doc Assistant" <${process.env.SMTP_USER}>`,
-        to: email,
-        subject: 'Your Magic Link - AI Doc Assistant',
-        html: `
-          <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 480px; margin: 0 auto; padding: 32px; background: #f8f9fa; border-radius: 12px;">
-            <h2 style="color: #1a1a2e; margin-bottom: 8px;">AI Doc Assistant</h2>
-            <p style="color: #555; font-size: 15px;">Click the button below to sign in. This link expires in 15 minutes.</p>
-            <div style="text-align: center; margin: 24px 0;">
-              <a href="${link}" style="background: #1a1a2e; color: #fff; font-size: 16px; text-decoration: none; padding: 14px 32px; border-radius: 8px; display: inline-block; font-weight: bold;">
-                Sign In
-              </a>
-            </div>
-            <p style="color: #888; font-size: 13px;">If the button doesn't work, copy and paste this link:<br/>
-              <a href="${link}" style="color: #4a6cf7; word-break: break-all;">${link}</a>
-            </p>
-            <p style="color: #888; font-size: 13px;">If you didn't request this, you can safely ignore this email.</p>
-          </div>
-        `,
-      });
-      console.log(`  ✅ Magic link email sent to ${email}`);
-      return true;
-    } catch (err) {
-      console.error('  ❌ Failed to send magic link email:', err.message);
-      return true;
-    }
-  } else {
-    console.log('  ⚠️  SMTP not configured — magic link logged to console only');
-    return true;
-  }
+  return true;
 }
 
 module.exports = {
