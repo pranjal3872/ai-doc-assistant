@@ -61,6 +61,27 @@ router.get('/documents/:filename', async (req, res) => {
   }
 });
 
+// GET /api/rag/documents/:filename/summary - Get document summary & suggested prompts
+router.get('/documents/:filename/summary', async (req, res) => {
+  try {
+    const userId = getUserId(req);
+    const { filename } = req.params;
+    const response = await fetch(`${RAG_SERVICE_URL}/documents/${encodeURIComponent(filename)}/summary`, {
+      headers: {
+        'X-User-Id': userId,
+      },
+    });
+    if (!response.ok) {
+      throw new Error(`RAG service returned ${response.status}`);
+    }
+    const data = await response.json();
+    res.json(data);
+  } catch (error) {
+    console.error('Error fetching document summary from RAG service:', error.message);
+    res.status(500).json({ error: 'Failed to fetch document summary' });
+  }
+});
+
 // DELETE /api/rag/documents/:filename - Delete document
 router.delete('/documents/:filename', async (req, res) => {
   try {

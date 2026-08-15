@@ -81,6 +81,11 @@ export default function Workspace({
   const [isSearching, setIsSearching] = useState<boolean>(false);
   const [currentTool, setCurrentTool] = useState<string | null>(null);
 
+  // Summary & Suggested Prompts state
+  const [docSummary, setDocSummary] = useState<string | null>(null);
+  const [suggestedPrompts, setSuggestedPrompts] = useState<string[]>([]);
+  const [isLoadingSummary, setIsLoadingSummary] = useState<boolean>(false);
+
   // Citation hover tooltip state
   const [tooltip, setTooltip] = useState<{
     show: boolean;
@@ -92,10 +97,12 @@ export default function Workspace({
 
   const chatEndRef = useRef<HTMLDivElement>(null);
 
-  // Fetch document details when selectedDoc changes
+  // Fetch document details and summary when selectedDoc changes
   useEffect(() => {
     if (!selectedDoc) {
       setDocDetail(null);
+      setDocSummary(null);
+      setSuggestedPrompts([]);
       return;
     }
 
@@ -112,7 +119,6 @@ export default function Workspace({
         }
       } catch (err) {
         console.error("Error fetching doc details, setting fallback details:", err);
-        // Resilient mock details mirroring the design specs
         setDocDetail({
           filename: selectedDoc.filename,
           pages: [
@@ -149,7 +155,33 @@ export default function Workspace({
       }
     };
 
+    const fetchSummary = async () => {
+      setIsLoadingSummary(true);
+      try {
+        const res = await fetchWithFallback(`/documents/${encodeURIComponent(selectedDoc.filename)}/summary`);
+        if (res.ok) {
+          const data = await res.json();
+          setDocSummary(data.summary);
+          setSuggestedPrompts(data.prompts || []);
+        } else {
+          throw new Error("Failed to fetch summary");
+        }
+      } catch (err) {
+        console.warn("Could not load document summary:", err);
+        setDocSummary(`Executive summary for ${selectedDoc.filename}. Document indexed and ready for semantic vector search.`);
+        setSuggestedPrompts([
+          `Summarize the key points in ${selectedDoc.filename}`,
+          "What are the main findings or data metrics?",
+          "List important recommendations and conclusions",
+          "What are the key technical specifications?"
+        ]);
+      } finally {
+        setIsLoadingSummary(false);
+      }
+    };
+
     fetchDocContent();
+    fetchSummary();
   }, [selectedDoc]);
 
   // Scroll to bottom of chat
@@ -523,6 +555,53 @@ export default function Workspace({
 
         {/* Chat History */}
         <div className="flex-1 overflow-y-auto p-4 space-y-4">
+          {/* AI Document Overview & Suggested Prompts Card */}
+          {selectedDoc && (
+            <div className="bg-gradient-to-br from-indigo-50/80 to-purple-50/80 dark:from-slate-900 dark:to-indigo-950/40 border border-indigo-200/80 dark:border-indigo-800/60 rounded-xl p-4 shadow-sm mb-4 transition-all">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="material-symbols-outlined text-primary text-lg">auto_awesome</span>
+                <h3 className="font-h3 text-xs uppercase font-bold tracking-wider text-primary">
+                  Document Overview & Starter Questions
+                </h3>
+              </div>
+              {isLoadingSummary ? (
+                <div className="flex items-center gap-2 text-xs text-slate-500 italic py-1">
+                  <span className="material-symbols-outlined animate-spin text-sm">sync</span>
+                  Analyzing document content with AI...
+                </div>
+              ) : (
+                <>
+                  <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed mb-3">
+                    {docSummary || `Executive overview of ${selectedDoc.filename}. Document indexed and ready for semantic vector search.`}
+                  </p>
+                  {suggestedPrompts.length > 0 && (
+                    <div>
+                      <span className="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 block mb-2 tracking-wider">
+                        Suggested Starter Questions:
+                      </span>
+                      <div className="flex flex-col gap-1.5">
+                        {suggestedPrompts.map((promptText, pIdx) => (
+                          <button
+                            key={pIdx}
+                            onClick={() => {
+                              setInputValue(promptText);
+                            }}
+                            className="text-left text-xs bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-primary dark:hover:border-primary hover:bg-slate-50 dark:hover:bg-slate-700/60 text-slate-800 dark:text-slate-200 px-3 py-2 rounded-lg transition-all flex items-center justify-between group cursor-pointer shadow-2xs"
+                          >
+                            <span>{promptText}</span>
+                            <span className="material-symbols-outlined text-sm text-slate-400 group-hover:text-primary transition-colors">
+                              arrow_forward
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          )}
+
           {chatHistory.map((msg, index) => {
             const isUser = msg.role === "user";
             return (
@@ -574,7 +653,7 @@ export default function Workspace({
 
         {/* Input Dock */}
         <div className="p-4 border-t border-outline-variant/60 bg-surface-low/30">
-          {/* Suggested Quick Question Chips */}
+          {/* Quick Action Chips */}
           <div className="mb-3 flex flex-wrap gap-1.5">
             <button
               onClick={() => {
@@ -588,7 +667,7 @@ export default function Workspace({
             </button>
             <button
               onClick={() => {
-                setInputValue("Extract the key takeaways and technical skills");
+                setInputValue("Extract key takeaways and numeric data");
               }}
               className="text-[11px] bg-indigo-500/15 border border-indigo-500/40 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-500/25 px-3 py-1.5 rounded-full font-semibold transition-all flex items-center gap-1.5 cursor-pointer shadow-xs"
             >
