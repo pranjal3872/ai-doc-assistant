@@ -32,7 +32,19 @@ interface Document {
 }
 
 const API_GATEWAY_URL = process.env.NEXT_PUBLIC_API_URL ? `${process.env.NEXT_PUBLIC_API_URL}/api/rag` : "http://localhost:5000/api/rag";
-const DIRECT_RAG_URL = process.env.NEXT_PUBLIC_RAG_URL || "http://127.0.0.1:8000";
+const DIRECT_RAG_URL = process.env.NEXT_PUBLIC_RAG_URL || "https://ai-doc-assistant-c65n.onrender.com";
+
+const fetchWithFallback = async (endpoint: string, init?: RequestInit) => {
+  if (process.env.NEXT_PUBLIC_API_URL) {
+    try {
+      const res = await fetch(`${API_GATEWAY_URL}${endpoint}`, init);
+      if (res.ok) return res;
+    } catch (e) {
+      console.warn("API Gateway failed, falling back to RAG URL:", e);
+    }
+  }
+  return fetch(`${DIRECT_RAG_URL}${endpoint}`, init);
+};
 
 interface WorkspaceProps {
   selectedDoc: Document | null;
@@ -90,20 +102,16 @@ export default function Workspace({
     const fetchDocContent = async () => {
       setIsLoadingDoc(true);
       try {
-        let res = await fetch(`${API_GATEWAY_URL}/documents/${encodeURIComponent(selectedDoc.filename)}`);
-        if (!res.ok) {
-          res = await fetch(`${DIRECT_RAG_URL}/documents/${encodeURIComponent(selectedDoc.filename)}`);
-        }
+        const res = await fetchWithFallback(`/documents/${encodeURIComponent(selectedDoc.filename)}`);
         if (res.ok) {
           const data = await res.json();
           setDocDetail(data);
           setCurrentPageIndex(0);
         } else {
-          // Fallback if not found or server is down
           throw new Error("Failed to fetch");
         }
       } catch (err) {
-        console.error("Error fetching doc details, setting mock fallback details:", err);
+        console.error("Error fetching doc details, setting fallback details:", err);
         // Resilient mock details mirroring the design specs
         setDocDetail({
           filename: selectedDoc.filename,

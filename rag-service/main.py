@@ -22,10 +22,22 @@ from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI()
 
+import os
+
+frontend_url = os.getenv("FRONTEND_URL", "*")
+allowed_origins = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "http://localhost:5000",
+    "http://127.0.0.1:5000",
+]
+if frontend_url and frontend_url != "*":
+    allowed_origins.append(frontend_url)
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000", "http://localhost:5000", "http://127.0.0.1:5000"],
-    allow_credentials=True,
+    allow_origins=["*"] if frontend_url == "*" else allowed_origins,
+    allow_credentials=True if frontend_url != "*" else False,
     allow_methods=["*"],
     allow_headers=["*"],
 )

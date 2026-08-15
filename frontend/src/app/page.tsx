@@ -16,7 +16,19 @@ interface Document {
 }
 
 const API_GATEWAY_URL = process.env.NEXT_PUBLIC_API_URL ? `${process.env.NEXT_PUBLIC_API_URL}/api/rag` : "http://localhost:5000/api/rag";
-const DIRECT_RAG_URL = process.env.NEXT_PUBLIC_RAG_URL || "http://127.0.0.1:8000";
+const DIRECT_RAG_URL = process.env.NEXT_PUBLIC_RAG_URL || "https://ai-doc-assistant-c65n.onrender.com";
+
+const fetchWithFallback = async (endpoint: string, init?: RequestInit) => {
+  if (process.env.NEXT_PUBLIC_API_URL) {
+    try {
+      const res = await fetch(`${API_GATEWAY_URL}${endpoint}`, init);
+      if (res.ok) return res;
+    } catch (e) {
+      console.warn("API Gateway failed, falling back to RAG URL:", e);
+    }
+  }
+  return fetch(`${DIRECT_RAG_URL}${endpoint}`, init);
+};
 
 export default function Home() {
   const { user, isAuthenticated, isLoading: authLoading, logout } = useAuth();
@@ -42,10 +54,7 @@ export default function Home() {
   const fetchDocuments = async () => {
     setIsLoadingDocs(true);
     try {
-      let res = await fetch(`${API_GATEWAY_URL}/documents`);
-      if (!res.ok) {
-        res = await fetch(`${DIRECT_RAG_URL}/documents`);
-      }
+      const res = await fetchWithFallback("/documents");
       if (res.ok) {
         const data = await res.json();
         setDocuments(data.documents || []);
@@ -53,8 +62,7 @@ export default function Home() {
         throw new Error("HTTP error " + res.status);
       }
     } catch (err) {
-      console.error("FastAPI server seems offline, using mock indexed document list:", err);
-      // Resilient mock data fallback
+      console.error("FastAPI server error, using mock fallback list if offline:", err);
       setDocuments([
         { filename: "financial_report_2023.pdf", pages: 3, chunks: 7 },
         { filename: "market_analysis.pdf", pages: 8, chunks: 32 },
@@ -75,22 +83,14 @@ export default function Home() {
     formData.append("file", file);
 
     try {
-      let res = await fetch(`${API_GATEWAY_URL}/upload`, {
+      const res = await fetchWithFallback("/upload", {
         method: "POST",
         body: formData,
       });
-      if (!res.ok) {
-        res = await fetch(`${DIRECT_RAG_URL}/upload`, {
-          method: "POST",
-          body: formData,
-        });
-      }
 
       if (res.ok) {
         const data = await res.json();
-        // Refresh document list
         await fetchDocuments();
-        // Automatically select the uploaded document
         const newDoc: Document = {
           filename: data.filename,
           pages: data.pages,
@@ -103,7 +103,6 @@ export default function Home() {
       }
     } catch (err) {
       console.error("Error uploading file to backend, applying simulated upload logic:", err);
-      // Resilient simulated upload logic for testing/offline mode
       const newDoc: Document = {
         filename: file.name,
         pages: 3,
@@ -122,14 +121,9 @@ export default function Home() {
     if (!confirm(`Are you sure you want to delete ${filename}?`)) return;
 
     try {
-      let res = await fetch(`${API_GATEWAY_URL}/documents/${encodeURIComponent(filename)}`, {
+      const res = await fetchWithFallback(`/documents/${encodeURIComponent(filename)}`, {
         method: "DELETE",
       });
-      if (!res.ok) {
-        res = await fetch(`${DIRECT_RAG_URL}/documents/${encodeURIComponent(filename)}`, {
-          method: "DELETE",
-        });
-      }
 
       if (res.ok) {
         await fetchDocuments();
@@ -141,7 +135,6 @@ export default function Home() {
       }
     } catch (err) {
       console.error("Error deleting from backend, simulating delete logic:", err);
-      // Fallback local deletion
       setDocuments((prev) => prev.filter((d) => d.filename !== filename));
       if (selectedDoc?.filename === filename) {
         setSelectedDoc(null);
@@ -152,7 +145,7 @@ export default function Home() {
   // Handle send message/search queries
   const handleSendMessage = async (query: string): Promise<string> => {
     try {
-      let res = await fetch(`${API_GATEWAY_URL}/search`, {
+      const res = await fetchWithFallback("/search", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -163,19 +156,6 @@ export default function Home() {
         }),
       });
 
-      if (!res.ok) {
-        res = await fetch(`${DIRECT_RAG_URL}/search`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            query: query,
-            filename: selectedDoc?.filename || null,
-          }),
-        });
-      }
-
       if (res.ok) {
         const data = await res.json();
         return data.answer || "No details found.";
@@ -184,7 +164,6 @@ export default function Home() {
       }
     } catch (err) {
       console.error("Search API failed, providing high-fidelity mock response:", err);
-      // Simulated intelligent response matching the document topics
       if (query.toLowerCase().includes("margin") || query.toLowerCase().includes("profit")) {
         return "The net profit margin for 2023 was [18.2%], representing a significant improvement of 450 basis points over the previous year. According to the document, this was driven by:\n\n1. Digital services segment expansion contributing 42% of earnings [financial_report_2023.pdf • Page 3]\n2. Implementation of AI-assisted operational workflows [financial_report_2023.pdf • Page 3]";
       }
