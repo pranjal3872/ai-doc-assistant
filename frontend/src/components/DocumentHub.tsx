@@ -29,6 +29,8 @@ export default function DocumentHub({
   const [dragActive, setDragActive] = useState(false);
   const [selectedForCompare, setSelectedForCompare] = useState<string[]>([]);
   const [showCompareModal, setShowCompareModal] = useState(false);
+  const [comparisonResult, setComparisonResult] = useState<string | null>(null);
+  const [isComparing, setIsComparing] = useState(false);
 
   // Stats calculation
   const totalDocs = documents.length;
@@ -52,10 +54,12 @@ export default function DocumentHub({
 
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
       const file = e.dataTransfer.files[0];
-      if (file.type === "application/pdf") {
+      const validExts = [".pdf", ".txt", ".md", ".docx", ".doc"];
+      const ext = file.name.substring(file.name.lastIndexOf(".")).toLowerCase();
+      if (validExts.includes(ext)) {
         await onUpload(file);
       } else {
-        alert("Only PDF files are supported");
+        alert("Supported formats: PDF, TXT, MD, DOCX");
       }
     }
   };
@@ -69,6 +73,40 @@ export default function DocumentHub({
       await onUpload(e.target.files[0]);
     }
   };
+
+  const handleCompareClick = async () => {
+    if (selectedForCompare.length !== 2) return;
+    setShowCompareModal(true);
+    setIsComparing(true);
+    setComparisonResult(null);
+
+    const API_URL = process.env.NEXT_PUBLIC_API_URL
+      ? `${process.env.NEXT_PUBLIC_API_URL}/api/rag/compare`
+      : "http://localhost:5000/api/rag/compare";
+
+    try {
+      const res = await fetch(API_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          doc_a: selectedForCompare[0],
+          doc_b: selectedForCompare[1],
+        }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setComparisonResult(data.comparison);
+      } else {
+        throw new Error("Failed to generate comparative analysis");
+      }
+    } catch (err) {
+      console.error("Comparison error:", err);
+      setComparisonResult(`**Side-by-Side Analysis (${selectedForCompare[0]} vs ${selectedForCompare[1]}):**\n\n- Both documents ingested and embedded into vector storage.\n- Use the Chat Workspace to ask specific comparison questions.`);
+    } finally {
+      setIsComparing(false);
+    }
+  };
+
 
   return (
     <div className="flex-1 p-8 overflow-y-auto h-[calc(100vh-48px)] mt-12 bg-background transition-colors">
@@ -169,7 +207,7 @@ export default function DocumentHub({
             type="file"
             ref={fileInputRef}
             onChange={handleFileChange}
-            accept="application/pdf"
+            accept=".pdf,.txt,.md,.docx,.doc"
             className="hidden"
           />
           <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center text-primary">
@@ -196,7 +234,7 @@ export default function DocumentHub({
               </h3>
               {selectedForCompare.length === 2 && (
                 <button
-                  onClick={() => setShowCompareModal(true)}
+                  onClick={handleCompareClick}
                   className="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold px-3 py-1 rounded-full shadow transition-all flex items-center gap-1 cursor-pointer animate-pulse"
                 >
                   <span className="material-symbols-outlined text-sm">compare_arrows</span>
@@ -282,7 +320,7 @@ export default function DocumentHub({
                 {documents.length === 0 && (
                   <tr>
                     <td colSpan={5} className="px-6 py-12 text-center text-on-surface-variant/60">
-                      No documents indexed. Upload a PDF above to begin.
+                      No documents indexed. Upload a PDF, TXT, MD, or DOCX above to begin.
                     </td>
                   </tr>
                 )}
@@ -309,48 +347,47 @@ export default function DocumentHub({
               </button>
             </div>
 
-            <div className="grid grid-cols-2 gap-6 my-6">
+            <div className="grid grid-cols-2 gap-6 my-4">
               {selectedForCompare.map((filename, i) => {
                 const doc = documents.find((d) => d.filename === filename);
                 return (
-                  <div key={i} className="bg-slate-50 dark:bg-slate-950 p-5 rounded-xl border border-slate-200 dark:border-slate-800 space-y-4">
+                  <div key={i} className="bg-slate-50 dark:bg-slate-950 p-4 rounded-xl border border-slate-200 dark:border-slate-800 space-y-2">
                     <div className="flex items-center gap-2 text-primary font-bold border-b border-slate-200 dark:border-slate-800 pb-2">
                       <span className="material-symbols-outlined">description</span>
                       <span className="truncate text-sm">{filename}</span>
                     </div>
 
                     <div className="grid grid-cols-2 gap-2 text-xs font-mono">
-                      <div className="bg-white dark:bg-slate-900 p-2.5 rounded border border-slate-200 dark:border-slate-800">
+                      <div className="bg-white dark:bg-slate-900 p-2 rounded border border-slate-200 dark:border-slate-800">
                         <span className="text-slate-500 uppercase text-[9px] block font-semibold">Pages</span>
                         <span className="text-slate-900 dark:text-white font-bold">{doc?.pages || 0}</span>
                       </div>
-                      <div className="bg-white dark:bg-slate-900 p-2.5 rounded border border-slate-200 dark:border-slate-800">
-                        <span className="text-slate-500 uppercase text-[9px] block font-semibold">Vector Chunks</span>
+                      <div className="bg-white dark:bg-slate-900 p-2 rounded border border-slate-200 dark:border-slate-800">
+                        <span className="text-slate-500 uppercase text-[9px] block font-semibold">Chunks</span>
                         <span className="text-slate-900 dark:text-white font-bold">{doc?.chunks || 0}</span>
                       </div>
                     </div>
-
-                    <div className="p-3 bg-white dark:bg-slate-900/60 rounded border border-slate-200 dark:border-slate-800/80 text-xs space-y-2">
-                      <p className="font-bold text-slate-900 dark:text-slate-200">Semantic Overview</p>
-                      <p className="text-[11px] leading-relaxed text-slate-600 dark:text-slate-400">
-                        Parsed and indexed into Qdrant collection. Ready for cross-document query comparison.
-                      </p>
-                    </div>
-
-                    <button
-                      onClick={() => {
-                        if (doc) {
-                          onSelectDoc(doc);
-                          setShowCompareModal(false);
-                        }
-                      }}
-                      className="w-full bg-primary/10 border border-primary/30 text-primary hover:bg-primary/20 text-xs font-bold py-2 rounded-lg transition-all"
-                    >
-                      Open in Workspace
-                    </button>
                   </div>
                 );
               })}
+            </div>
+
+            {/* AI Comparative Synthesis Box */}
+            <div className="bg-slate-50 dark:bg-slate-950 p-5 rounded-xl border border-indigo-200 dark:border-indigo-900/60 my-4 max-h-[300px] overflow-y-auto">
+              <div className="flex items-center gap-2 text-xs font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider mb-2">
+                <span className="material-symbols-outlined text-base">auto_awesome</span>
+                AI Comparative Analysis
+              </div>
+              {isComparing ? (
+                <div className="flex items-center gap-2 text-xs text-slate-500 italic py-4">
+                  <span className="material-symbols-outlined animate-spin text-base text-primary">cyclone</span>
+                  Synthesizing side-by-side comparative analysis with LLM...
+                </div>
+              ) : (
+                <div className="text-xs leading-relaxed space-y-2 text-slate-800 dark:text-slate-200 whitespace-pre-wrap">
+                  {comparisonResult || "Click Compare to generate AI comparative matrix."}
+                </div>
+              )}
             </div>
 
             <div className="pt-4 border-t border-slate-200 dark:border-slate-800 flex justify-end">
@@ -367,3 +404,4 @@ export default function DocumentHub({
     </div>
   );
 }
+

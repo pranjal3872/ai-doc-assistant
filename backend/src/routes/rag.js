@@ -160,4 +160,29 @@ router.post('/search', async (req, res) => {
   }
 });
 
+// POST /api/rag/compare - Compare 2 documents side-by-side
+router.post('/compare', async (req, res) => {
+  try {
+    const userId = getUserId(req);
+    const { doc_a, doc_b } = req.body;
+
+    const response = await fetch(`${RAG_SERVICE_URL}/compare`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-User-Id': userId,
+      },
+      body: JSON.stringify({ doc_a, doc_b, user_id: userId }),
+    });
+
+    const data = await response.json();
+    res.json(data);
+  } catch (error) {
+    console.error('Error comparing documents:', error.message);
+    res.status(500).json({ error: 'Failed to compare documents' });
+  }
+});
+
 module.exports = router;
+
+
