@@ -11,4 +11,4 @@ langchain-core
 langchain-groq
 langgraph
 tavily-python
-pydantic
+python-docx

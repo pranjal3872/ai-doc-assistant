@@ -51,6 +51,11 @@ class SearchRequest(BaseModel):
     filename: Optional[str] = None
     user_id: Optional[str] = None
 
+class CompareRequest(BaseModel):
+    doc_a: str
+    doc_b: str
+    user_id: Optional[str] = None
+
 UPLOAD_DIR = "uploads"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
@@ -216,6 +221,75 @@ async def upload_pdf(file: UploadFile = File(...), x_user_id: Optional[str] = He
         "chunks": len(all_chunks),
         "first_chunk": all_chunks[0] if all_chunks else ""
     }
+
+
+@app.post("/compare")
+async def compare_documents(request: CompareRequest, x_user_id: Optional[str] = Header(None)):
+    user_id = request.user_id or x_user_id or "default_user"
+    from database.qdrant import client, COLLECTION_NAME, Filter, FieldCondition, MatchValue
+
+    def get_sample(fn):
+        res = client.scroll(
+            collection_name=COLLECTION_NAME,
+            scroll_filter=Filter(must=[
+                FieldCondition(key="filename", match=MatchValue(value=fn)),
+                FieldCondition(key="user_id", match=MatchValue(value=user_id))
+            ]),
+            limit=15,
+            with_payload=True,
+            with_vectors=False
+        )
+        pts = res[0]
+        return " ".join([p.payload.get("text", "") for p in pts[:8]])
+
+    sample_a = get_sample(request.doc_a)
+    sample_b = get_sample(request.doc_b)
+
+    from services.llm_service import client as groq_client
+    if not groq_client:
+        return {
+            "doc_a": request.doc_a,
+            "doc_b": request.doc_b,
+            "comparison": f"**Side-by-Side Document Overview:**\n\n**{request.doc_a}:**\n- Extracted text sample length: {len(sample_a)} chars.\n\n**{request.doc_b}:**\n- Extracted text sample length: {len(sample_b)} chars.\n\n*Configure GROQ_API_KEY for dynamic comparative LLM analysis.*"
+        }
+
+    prompt = f"""Compare the following two documents side-by-side.
+
+Document A ({request.doc_a}):
+\"\"\"
+{sample_a[:2500]}
+\"\"\"
+
+Document B ({request.doc_b}):
+\"\"\"
+{sample_b[:2500]}
+\"\"\"
+
+Produce a structured, comparative analysis:
+**Core Objectives:**
+- {request.doc_a}: ...
+- {request.doc_b}: ...
+
+**Key Differences & Unique Points:**
+- {request.doc_a}: ...
+- {request.doc_b}: ...
+
+**Summary Synthesis:**
+- ...
+"""
+
+    resp = groq_client.chat.completions.create(
+        model="llama-3.1-8b-instant",
+        messages=[{"role": "user", "content": prompt}],
+        temperature=0.2
+    )
+
+    return {
+        "doc_a": request.doc_a,
+        "doc_b": request.doc_b,
+        "comparison": resp.choices[0].message.content
+    }
+
 
 
 @app.post("/search")
