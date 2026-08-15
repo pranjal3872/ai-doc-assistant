@@ -3,7 +3,7 @@ from fastapi.responses import StreamingResponse
 from services.pdf_service import extract_text
 from utils.chunker import chunk_text
 from services.embedding_service import generate_embeddings
-from services.llm_service import generate_answer
+from services.llm_service import generate_answer, generate_summary_and_prompts
 from database.qdrant import (
     create_collection,
     store_embeddings,
@@ -131,6 +131,43 @@ async def get_document_content(filename: str, x_user_id: Optional[str] = Header(
     return {
         "filename": filename,
         "pages": sorted_pages
+    }
+
+@app.get("/documents/{filename}/summary")
+async def get_document_summary(filename: str, x_user_id: Optional[str] = Header(None)):
+    from database.qdrant import client, COLLECTION_NAME, Filter, FieldCondition, MatchValue
+
+    user_id = x_user_id or "default_user"
+    must_conditions = [
+        FieldCondition(
+            key="filename",
+            match=MatchValue(value=filename)
+        )
+    ]
+    if user_id:
+        must_conditions.append(
+            FieldCondition(
+                key="user_id",
+                match=MatchValue(value=user_id)
+            )
+        )
+
+    response = client.scroll(
+        collection_name=COLLECTION_NAME,
+        scroll_filter=Filter(must=must_conditions),
+        limit=20,
+        with_payload=True,
+        with_vectors=False
+    )
+
+    points = response[0]
+    sample_text = " ".join([pt.payload.get("text", "") for pt in points[:10]])
+    summary_data = generate_summary_and_prompts(sample_text, filename=filename)
+
+    return {
+        "filename": filename,
+        "summary": summary_data["summary"],
+        "prompts": summary_data["prompts"]
     }
 
 @app.on_event("startup")
