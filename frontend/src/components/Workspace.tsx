@@ -466,7 +466,7 @@ export default function Workspace({
         </div>
 
         {/* PDF Page Canvas */}
-        <div className="flex-1 overflow-y-auto p-8 flex justify-center scroll-smooth bg-slate-100 dark:bg-slate-950 transition-colors">
+        <div className="flex-1 overflow-y-auto p-6 md:p-8 pb-16 flex justify-center items-start scroll-smooth bg-slate-100 dark:bg-slate-950 transition-colors">
           {isLoadingDoc ? (
             <div className="flex flex-col items-center justify-center gap-2 text-slate-500 dark:text-slate-400">
               <span className="material-symbols-outlined animate-spin text-primary text-3xl">
@@ -477,8 +477,9 @@ export default function Workspace({
           ) : activePage ? (
             <div
               style={{ width: `${Math.min(98, zoom)}%`, maxWidth: "950px" }}
-              className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xl relative min-h-fit md:min-h-[400px] p-5 md:p-8 transition-all select-text rounded-lg w-full break-words mb-8"
+              className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xl relative h-auto min-h-[500px] p-6 md:p-8 transition-all select-text rounded-xl w-full break-words shadow-2xl mb-8"
             >
+
 
               <div className="flex justify-between items-center border-b border-slate-200 dark:border-slate-800 pb-3 mb-4">
                 <h2 className="font-h2 text-lg text-slate-900 dark:text-slate-100 font-bold">
