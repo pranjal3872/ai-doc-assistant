@@ -477,8 +477,9 @@ export default function Workspace({
           ) : activePage ? (
             <div
               style={{ width: `${Math.min(98, zoom)}%`, maxWidth: "950px" }}
-              className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xl relative min-h-[600px] p-6 md:p-8 transition-all select-text rounded-lg w-full break-words"
+              className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xl relative min-h-fit md:min-h-[400px] p-5 md:p-8 transition-all select-text rounded-lg w-full break-words mb-8"
             >
+
               <div className="flex justify-between items-center border-b border-slate-200 dark:border-slate-800 pb-3 mb-4">
                 <h2 className="font-h2 text-lg text-slate-900 dark:text-slate-100 font-bold">
                   Document Content
