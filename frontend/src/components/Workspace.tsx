@@ -243,8 +243,33 @@ export default function Workspace({
     }
   };
 
+  const handleExportChat = () => {
+    let mdContent = `# AI Document Assistant - Chat & Insights Export\n`;
+    mdContent += `**Document:** ${selectedDoc ? selectedDoc.filename : "General Workspace Session"}\n`;
+    mdContent += `**Exported On:** ${new Date().toLocaleString()}\n\n---\n\n`;
+
+    if (docSummary) {
+      mdContent += `## Executive Summary\n${docSummary}\n\n---\n\n`;
+    }
+
+    mdContent += `## Conversation History\n\n`;
+    chatHistory.forEach((msg) => {
+      const sender = msg.role === "user" ? "User" : "Doc Assistant";
+      mdContent += `### ${sender} (${msg.timestamp})\n${msg.text}\n\n`;
+    });
+
+    const blob = new Blob([mdContent], { type: "text/markdown" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${selectedDoc ? selectedDoc.filename.replace(/\.[^/.]+$/, "") : "doc_assistant"}_chat_export.md`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   // Active chunk highlight on citation click
   const [highlightedChunkText, setHighlightedChunkText] = useState<string | null>(null);
+
 
   // Navigates to a specific page parsed from a citation click
   const handleCitationClick = (text: string) => {
@@ -520,15 +545,25 @@ export default function Workspace({
         {/* Agent Activity Feed */}
         <div className="p-4 border-b border-outline-variant/60 bg-surface-low/50">
           <div className="flex items-center justify-between mb-3">
-            <h3 className="font-label-caps text-on-surface-variant uppercase tracking-wider font-semibold">
-              Agent Pipeline State
-            </h3>
-            {isSearching ? (
-              <span className="flex h-2 w-2 rounded-full bg-green-500 animate-ping"></span>
-            ) : (
-              <span className="h-2 w-2 rounded-full bg-slate-500"></span>
-            )}
+            <div className="flex items-center gap-2">
+              <h3 className="font-label-caps text-on-surface-variant uppercase tracking-wider font-semibold">
+                Agent Pipeline State
+              </h3>
+              {isSearching ? (
+                <span className="flex h-2 w-2 rounded-full bg-green-500 animate-ping"></span>
+              ) : (
+                <span className="h-2 w-2 rounded-full bg-slate-500"></span>
+              )}
+            </div>
+            <button
+              onClick={handleExportChat}
+              className="text-[11px] bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-bold px-2.5 py-1 rounded flex items-center gap-1 transition-all cursor-pointer shadow-xs"
+            >
+              <span className="material-symbols-outlined text-xs">download</span>
+              Export Chat
+            </button>
           </div>
+
           <div className="flex flex-wrap gap-2">
             <div
               className={`flex items-center gap-1.5 font-label-mono text-[11px] px-2.5 py-1 rounded border transition-all ${

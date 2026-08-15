@@ -1,21 +1,36 @@
 import os
 import json
+import urllib.request
+import urllib.parse
 from groq import Groq
 from dotenv import load_dotenv
 
 load_dotenv()
 
 api_key = os.getenv("GROQ_API_KEY")
+ollama_url = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
+use_ollama = os.getenv("USE_OLLAMA", "false").lower() == "true"
+
 client = None
-if api_key:
+if api_key and not use_ollama:
     client = Groq(
         api_key=api_key
     )
 
-def generate_answer(question, context):
-    if not client:
-        return "Simulated response: The profit margin for 2023 was 18.2%, driven by digital services (42% of earnings) and logistics AI workflows [financial_report_2023.pdf • Page 3]."
+def _query_ollama(prompt: str, model: str = "llama3.2") -> str:
+    """Helper to query local Ollama instance at localhost:11434"""
+    try:
+        url = f"{ollama_url.rstrip('/')}/api/generate"
+        payload = json.dumps({"model": model, "prompt": prompt, "stream": False}).encode("utf-8")
+        req = urllib.request.Request(url, data=payload, headers={"Content-Type": "application/json"})
+        with urllib.request.urlopen(req, timeout=10) as response:
+            data = json.loads(response.read().decode("utf-8"))
+            return data.get("response", "")
+    except Exception as e:
+        print(f"Ollama local LLM query failed: {e}")
+        return ""
 
+def generate_answer(question, context):
     prompt = f"""You are an expert AI document assistant. Answer the user's question clearly based ONLY on the provided context.
 
 CRITICAL FORMATTING INSTRUCTIONS:
@@ -40,18 +55,24 @@ Question:
 Answer:
 """
 
-    response = client.chat.completions.create(
-        model="llama-3.1-8b-instant",
-        messages=[
-            {
-                "role": "user",
-                "content": prompt
-            }
-        ],
-        temperature=0.2,
-    )
+    if client:
+        try:
+            response = client.chat.completions.create(
+                model="llama-3.1-8b-instant",
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0.2,
+            )
+            return response.choices[0].message.content
+        except Exception as e:
+            print(f"Groq API call failed: {e}, falling back to Ollama or local response.")
 
-    return response.choices[0].message.content
+    # Local Ollama Fallback
+    ollama_res = _query_ollama(prompt)
+    if ollama_res:
+        return f"🦙 **[Local Ollama Output]**\n\n{ollama_res}"
+
+    return "Simulated response: The profit margin for 2023 was 18.2%, driven by digital services (42% of earnings) and logistics AI workflows [financial_report_2023.pdf • Page 3]."
+
 
 
 def generate_summary_and_prompts(text_sample: str, filename: str = "document"):

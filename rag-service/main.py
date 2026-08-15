@@ -2,7 +2,9 @@ from fastapi import FastAPI, UploadFile, File, Header
 from fastapi.responses import StreamingResponse
 from services.pdf_service import extract_text
 from utils.chunker import chunk_text
+from utils.privacy import redact_pii
 from services.embedding_service import generate_embeddings
+
 from services.llm_service import generate_answer, generate_summary_and_prompts
 from database.qdrant import (
     create_collection,
@@ -195,7 +197,9 @@ async def upload_pdf(file: UploadFile = File(...), x_user_id: Optional[str] = He
     all_metadata = []
 
     for page in pages:
-        chunks = chunk_text(page["text"])
+        sanitized_text = redact_pii(page["text"])
+        chunks = chunk_text(sanitized_text)
+
 
         for chunk in chunks:
             all_chunks.append(chunk)
