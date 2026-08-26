@@ -124,27 +124,18 @@ export default function Workspace({
           pages: [
             {
               page: 1,
-              text: "AI Document Assistant - Project Overview and Architecture details. Document classification is driven by advanced semantic search algorithms integrated with a high-performance vector database.",
+              text: `${selectedDoc.filename} - Document Overview and Contents. Document indexed and prepared for semantic search.`,
               chunks: [
-                { id: 0, text: "AI Document Assistant - Project Overview and Architecture details." },
-                { id: 1, text: "Document classification is driven by advanced semantic search algorithms integrated with a high-performance vector database." }
+                { id: 0, text: `${selectedDoc.filename} - Document Overview and Contents.` },
+                { id: 1, text: "Document indexed and prepared for semantic search and Q&A." }
               ]
             },
             {
               page: 2,
-              text: "The retrieval pipeline uses Langchain components connected to Qdrant. The system is designed to segment PDFs page-wise and embed them using fast sentences embeddings models.",
+              text: "Document Analysis & Key Highlights. The document text is segmented into chunks and indexed in vector storage.",
               chunks: [
-                { id: 2, text: "The retrieval pipeline uses Langchain components connected to Qdrant." },
-                { id: 3, text: "The system is designed to segment PDFs page-wise and embed them using fast sentences embeddings models." }
-              ]
-            },
-            {
-              page: 3,
-              text: "Operating Performance & Strategic Initiatives. During the fiscal year ended December 31, 2023, the Company demonstrated significant resilience in its core business operations. Revenue growth was primarily driven by the expansion of the digital services segment, which accounted for 42% of total consolidated earnings. The net profit margin improved by 450 basis points compared to the previous year, reaching an all-time high of 18.2%. This optimization was attributed to the successful implementation of AI-assisted operational workflows across all logistics divisions. Market volatility remained a headwind; however, the early adoption of adaptive risk management frameworks provided a buffer against inflationary pressures.",
-              chunks: [
-                { id: 4, text: "Operating Performance & Strategic Initiatives. During the fiscal year ended December 31, 2023, the Company demonstrated significant resilience in its core business operations. Revenue growth was primarily driven by the expansion of the digital services segment, which accounted for 42% of total consolidated earnings." },
-                { id: 5, text: "The net profit margin improved by 450 basis points compared to the previous year, reaching an all-time high of 18.2%. This optimization was attributed to the successful implementation of AI-assisted operational workflows across all logistics divisions." },
-                { id: 6, text: "Market volatility remained a headwind; however, the early adoption of adaptive risk management frameworks provided a buffer against inflationary pressures." }
+                { id: 2, text: "Document Analysis & Key Highlights." },
+                { id: 3, text: "The document text is segmented into chunks and indexed in vector storage." }
               ]
             }
           ]

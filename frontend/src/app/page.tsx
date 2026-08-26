@@ -163,11 +163,9 @@ export default function Home() {
         throw new Error("HTTP error " + res.status);
       }
     } catch (err) {
-      console.error("Search API failed, providing high-fidelity mock response:", err);
-      if (query.toLowerCase().includes("margin") || query.toLowerCase().includes("profit")) {
-        return "The net profit margin for 2023 was [18.2%], representing a significant improvement of 450 basis points over the previous year. According to the document, this was driven by:\n\n1. Digital services segment expansion contributing 42% of earnings [financial_report_2023.pdf • Page 3]\n2. Implementation of AI-assisted operational workflows [financial_report_2023.pdf • Page 3]";
-      }
-      return `I analyzed the document regarding "${query}". The system fetched semantic chunks related to your query, matching embeddings inside the collection. However, the connection to the LLM agent is simulated. [financial_report_2023.pdf • Page 1]`;
+      console.error("Search API failed, providing document fallback response:", err);
+      const targetName = selectedDoc?.filename || "document.pdf";
+      return `**Document Overview & Analysis (${targetName}):**\n\n- Processed query: "${query}"\n- Target document: **${targetName}**\n- Note: Unable to reach live backend service. Please ensure the backend and RAG API service are running.\n\n[${targetName} • Page 1]`;
     }
   };
 

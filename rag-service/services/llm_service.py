@@ -30,6 +30,74 @@ def _query_ollama(prompt: str, model: str = "llama3.2") -> str:
         print(f"Ollama local LLM query failed: {e}")
         return ""
 
+def _query_gemini(prompt: str) -> str:
+    """Helper to query Google Gemini REST API using GEMINI_API_KEY if available."""
+    gemini_key = os.getenv("GEMINI_API_KEY")
+    if not gemini_key:
+        return ""
+    try:
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={gemini_key}"
+        payload = json.dumps({
+            "contents": [{"parts": [{"text": prompt}]}]
+        }).encode("utf-8")
+        req = urllib.request.Request(url, data=payload, headers={"Content-Type": "application/json"})
+        with urllib.request.urlopen(req, timeout=15) as response:
+            data = json.loads(response.read().decode("utf-8"))
+            candidates = data.get("candidates", [])
+            if candidates:
+                parts = candidates[0].get("content", {}).get("parts", [])
+                if parts:
+                    return parts[0].get("text", "")
+    except Exception as e:
+        print(f"Gemini API call failed: {e}")
+    return ""
+
+
+def _extractive_context_fallback(question: str, context: str) -> str:
+    """Extractive context synthesis when external LLMs are unreachable or unconfigured."""
+    if not context or not context.strip():
+        return "No matching context found in document index for your query."
+
+    lines = [l.strip() for l in context.split("\n") if l.strip()]
+    extracted = []
+    current_src = ""
+
+    for l in lines:
+        if l.startswith("Source:"):
+            current_src = l.replace("Source:", "").strip()
+        elif l.startswith("Text:"):
+            t = l.replace("Text:", "").strip()
+            if t:
+                extracted.append((current_src, t))
+        elif current_src and not l.startswith("Source:"):
+            extracted.append((current_src, l))
+
+    if not extracted:
+        chunks = [c.strip() for c in context.split("\n\n") if c.strip()]
+        for c in chunks[:5]:
+            extracted.append(("", c))
+
+    output = [
+        "**Document Key Information & Excerpts:**",
+        ""
+    ]
+
+    seen = set()
+    count = 0
+    for src, text in extracted:
+        text_clean = text.replace("\n", " ").strip()
+        if not text_clean or text_clean in seen:
+            continue
+        seen.add(text_clean)
+        cit = f" {src}" if src else ""
+        output.append(f"- {text_clean}{cit}")
+        count += 1
+        if count >= 6:
+            break
+
+    return "\n".join(output)
+
+
 def generate_answer(question, context):
     prompt = f"""You are an expert AI document assistant. Answer the user's question clearly based ONLY on the provided context.
 
@@ -64,14 +132,20 @@ Answer:
             )
             return response.choices[0].message.content
         except Exception as e:
-            print(f"Groq API call failed: {e}, falling back to Ollama or local response.")
+            print(f"Groq API call failed: {e}, falling back to Gemini, Ollama, or context synthesis.")
+
+    # Gemini Fallback
+    gemini_res = _query_gemini(prompt)
+    if gemini_res:
+        return gemini_res
 
     # Local Ollama Fallback
     ollama_res = _query_ollama(prompt)
     if ollama_res:
         return f"🦙 **[Local Ollama Output]**\n\n{ollama_res}"
 
-    return "Simulated response: The profit margin for 2023 was 18.2%, driven by digital services (42% of earnings) and logistics AI workflows [financial_report_2023.pdf • Page 3]."
+    # Extractive Context Synthesis Fallback (no hardcoded static response)
+    return _extractive_context_fallback(question, context)
 
 
 
