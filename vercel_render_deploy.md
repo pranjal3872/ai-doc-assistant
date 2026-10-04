@@ -36,7 +36,9 @@ Render will read the [`render.yaml`](file:///c:/projects/ai-doc-assistant/render
    - `SMTP_USER`: `<your_smtp_email>` *(Optional fallback)*
    - `SMTP_PASS`: `<your_smtp_password>` *(Optional fallback)*
 
-   `RAG_INTERNAL_KEY` is generated on the RAG service and copied to the backend automatically by `render.yaml`. It stops anyone from calling the RAG service directly with another user's ID.
+   - `RAG_SERVICE_URL`: the RAG service's public URL, e.g. `https://ai-doc-rag-service-xxxx.onrender.com`. On a first deploy, leave it empty, then set it once the RAG service is live (step 7).
+
+   `RAG_INTERNAL_KEY` is generated on the RAG service and copied to the backend automatically by `render.yaml`. It stops anyone from calling the RAG service directly with another user's ID. If you created the services by hand instead of from the blueprint, set the same random value on both.
 
 
 6. Click **Apply**. Render will deploy both services!

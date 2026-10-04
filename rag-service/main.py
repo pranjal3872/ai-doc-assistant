@@ -47,18 +47,21 @@ app.add_middleware(
 )
 
 
-# Shared secret set on both this service and the backend. When set, only the
-# backend (which authenticates users) may call this service.
+# Shared secret set on both this service and the backend, so only the backend
+# (which authenticates users) may call this service. Without it every request
+# is refused rather than trusting a caller-supplied X-User-Id.
 RAG_INTERNAL_KEY = os.getenv("RAG_INTERNAL_KEY", "").strip()
 if not RAG_INTERNAL_KEY:
-    print("Warning: RAG_INTERNAL_KEY is not set; any caller can pick an X-User-Id.")
+    print("Error: RAG_INTERNAL_KEY is not set; all document requests will be refused.")
 
 
 def get_user_id(
     x_user_id: Optional[str] = Header(None),
     x_internal_key: Optional[str] = Header(None),
 ) -> str:
-    if RAG_INTERNAL_KEY and not hmac.compare_digest(x_internal_key or "", RAG_INTERNAL_KEY):
+    if not RAG_INTERNAL_KEY:
+        raise HTTPException(status_code=503, detail="RAG_INTERNAL_KEY is not configured")
+    if not hmac.compare_digest(x_internal_key or "", RAG_INTERNAL_KEY):
         raise HTTPException(status_code=401, detail="Invalid internal key")
     if not x_user_id or not x_user_id.strip():
         raise HTTPException(status_code=401, detail="Missing user ID")

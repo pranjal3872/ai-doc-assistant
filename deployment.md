@@ -55,6 +55,7 @@ The fastest and most robust way to run the full stack on any Virtual Private Ser
    - `GROQ_API_KEY`: Your Groq Cloud API Key
    - `TAVILY_API_KEY`: Your Tavily Search API Key
    - `JWT_SECRET` & `SESSION_SECRET`: Random secure secret strings
+   - `RAG_INTERNAL_KEY`: Random secure secret string shared by the backend and RAG service (both refuse document requests without it)
 
 3. **Build & Start Containers**:
    ```bash

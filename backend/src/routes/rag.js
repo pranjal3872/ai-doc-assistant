@@ -6,13 +6,17 @@ const fs = require('fs');
 const { authenticateToken } = require('../middleware/auth');
 
 let rawRagUrl = (process.env.RAG_SERVICE_URL || 'http://127.0.0.1:8000').trim();
-rawRagUrl = rawRagUrl.replace(/^RAG_SERVICE_URL\s*=\s*/i, '').trim();
+rawRagUrl = rawRagUrl.replace(/^RAG_SERVICE_URL\s*=\s*/i, '').trim().replace(/\/+$/, '');
+// Accept a bare host such as "my-rag.onrender.com" by assuming https
+if (!/^https?:\/\//i.test(rawRagUrl)) {
+  rawRagUrl = `https://${rawRagUrl}`;
+}
 const RAG_SERVICE_URL = rawRagUrl;
 
 // Shared secret proving to the RAG service that a request came from this backend
 const RAG_INTERNAL_KEY = (process.env.RAG_INTERNAL_KEY || '').trim();
 if (!RAG_INTERNAL_KEY) {
-  console.warn('RAG_INTERNAL_KEY is not set; the RAG service will trust any caller.');
+  console.error('RAG_INTERNAL_KEY is not set; the RAG service will refuse document requests.');
 }
 
 // Every RAG route requires a signed-in user; documents are scoped to their ID
@@ -37,7 +41,7 @@ router.get('/documents', async (req, res) => {
       throw new Error(`RAG service returned ${response.status}`);
     }
     const data = await response.json();
-    res.json(data);
+    res.status(response.status).json(data);
   } catch (error) {
     console.error('Error fetching documents from RAG service:', error.message);
     res.status(500).json({
@@ -60,7 +64,7 @@ router.get('/documents/:filename', async (req, res) => {
       throw new Error(`RAG service returned ${response.status}`);
     }
     const data = await response.json();
-    res.json(data);
+    res.status(response.status).json(data);
   } catch (error) {
     console.error('Error fetching document detail from RAG service:', error.message);
     res.status(500).json({ error: 'Failed to fetch document detail' });
@@ -78,7 +82,7 @@ router.get('/documents/:filename/summary', async (req, res) => {
       throw new Error(`RAG service returned ${response.status}`);
     }
     const data = await response.json();
-    res.json(data);
+    res.status(response.status).json(data);
   } catch (error) {
     console.error('Error fetching document summary from RAG service:', error.message);
     res.status(500).json({ error: 'Failed to fetch document summary' });
@@ -94,7 +98,7 @@ router.delete('/documents/:filename', async (req, res) => {
       headers: ragHeaders(req),
     });
     const data = await response.json();
-    res.json(data);
+    res.status(response.status).json(data);
   } catch (error) {
     console.error('Error deleting document:', error.message);
     res.status(500).json({ error: 'Failed to delete document' });
@@ -122,7 +126,7 @@ router.post('/upload', upload.single('file'), async (req, res) => {
     });
 
     const data = await response.json();
-    res.json(data);
+    res.status(response.status).json(data);
   } catch (error) {
     console.error('Error uploading file to RAG service:', error.message);
     res.status(500).json({ error: 'Failed to process document upload' });
@@ -146,7 +150,7 @@ router.post('/search', async (req, res) => {
     });
 
     const data = await response.json();
-    res.json(data);
+    res.status(response.status).json(data);
   } catch (error) {
     console.error('Error querying RAG service:', error.message);
     res.status(500).json({ error: 'Failed to execute query' });
@@ -165,7 +169,7 @@ router.post('/compare', async (req, res) => {
     });
 
     const data = await response.json();
-    res.json(data);
+    res.status(response.status).json(data);
   } catch (error) {
     console.error('Error comparing documents:', error.message);
     res.status(500).json({ error: 'Failed to compare documents' });
