@@ -12,6 +12,8 @@ services:
         sync: false
       - key: TAVILY_API_KEY
         sync: false
+      - key: RAG_INTERNAL_KEY
+        generateValue: true
       - key: PYTHON_VERSION
         value: 3.11.0
 
@@ -31,6 +33,11 @@ services:
           type: web
           name: ai-doc-rag-service
           property: host
+      - key: RAG_INTERNAL_KEY
+        fromService:
+          type: web
+          name: ai-doc-rag-service
+          envVarKey: RAG_INTERNAL_KEY
       - key: FRONTEND_URL
         sync: false
       - key: SESSION_SECRET

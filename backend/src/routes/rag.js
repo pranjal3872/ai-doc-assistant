@@ -3,26 +3,35 @@ const router = express.Router();
 const multer = require('multer');
 const upload = multer({ dest: 'uploads/' });
 const fs = require('fs');
+const { authenticateToken } = require('../middleware/auth');
 
 let rawRagUrl = (process.env.RAG_SERVICE_URL || 'http://127.0.0.1:8000').trim();
 rawRagUrl = rawRagUrl.replace(/^RAG_SERVICE_URL\s*=\s*/i, '').trim();
 const RAG_SERVICE_URL = rawRagUrl;
 
-// Helper to get user ID from request session/token or default
-const getUserId = (req) => {
-  if (req.user && req.user.id) return req.user.id;
-  if (req.headers['x-user-id']) return req.headers['x-user-id'];
-  return 'default_user';
+// Shared secret proving to the RAG service that a request came from this backend
+const RAG_INTERNAL_KEY = (process.env.RAG_INTERNAL_KEY || '').trim();
+if (!RAG_INTERNAL_KEY) {
+  console.warn('RAG_INTERNAL_KEY is not set; the RAG service will trust any caller.');
+}
+
+// Every RAG route requires a signed-in user; documents are scoped to their ID
+router.use(authenticateToken);
+
+const getUserId = (req) => req.user.id;
+
+// Headers sent to the RAG service: the authenticated user ID plus the internal key
+const ragHeaders = (req, extra = {}) => {
+  const headers = { ...extra, 'X-User-Id': getUserId(req) };
+  if (RAG_INTERNAL_KEY) headers['X-Internal-Key'] = RAG_INTERNAL_KEY;
+  return headers;
 };
 
 // GET /api/rag/documents - List documents
 router.get('/documents', async (req, res) => {
   try {
-    const userId = getUserId(req);
     const response = await fetch(`${RAG_SERVICE_URL}/documents`, {
-      headers: {
-        'X-User-Id': userId,
-      },
+      headers: ragHeaders(req),
     });
     if (!response.ok) {
       throw new Error(`RAG service returned ${response.status}`);
@@ -43,12 +52,9 @@ router.get('/documents', async (req, res) => {
 // GET /api/rag/documents/:filename - Get document content
 router.get('/documents/:filename', async (req, res) => {
   try {
-    const userId = getUserId(req);
     const { filename } = req.params;
     const response = await fetch(`${RAG_SERVICE_URL}/documents/${encodeURIComponent(filename)}`, {
-      headers: {
-        'X-User-Id': userId,
-      },
+      headers: ragHeaders(req),
     });
     if (!response.ok) {
       throw new Error(`RAG service returned ${response.status}`);
@@ -64,12 +70,9 @@ router.get('/documents/:filename', async (req, res) => {
 // GET /api/rag/documents/:filename/summary - Get document summary & suggested prompts
 router.get('/documents/:filename/summary', async (req, res) => {
   try {
-    const userId = getUserId(req);
     const { filename } = req.params;
     const response = await fetch(`${RAG_SERVICE_URL}/documents/${encodeURIComponent(filename)}/summary`, {
-      headers: {
-        'X-User-Id': userId,
-      },
+      headers: ragHeaders(req),
     });
     if (!response.ok) {
       throw new Error(`RAG service returned ${response.status}`);
@@ -85,13 +88,10 @@ router.get('/documents/:filename/summary', async (req, res) => {
 // DELETE /api/rag/documents/:filename - Delete document
 router.delete('/documents/:filename', async (req, res) => {
   try {
-    const userId = getUserId(req);
     const { filename } = req.params;
     const response = await fetch(`${RAG_SERVICE_URL}/documents/${encodeURIComponent(filename)}`, {
       method: 'DELETE',
-      headers: {
-        'X-User-Id': userId,
-      },
+      headers: ragHeaders(req),
     });
     const data = await response.json();
     res.json(data);
@@ -109,7 +109,6 @@ router.post('/upload', upload.single('file'), async (req, res) => {
 
   const filePath = req.file.path;
   try {
-    const userId = getUserId(req);
     const fileBuffer = fs.readFileSync(filePath);
     const fileBlob = new Blob([fileBuffer], { type: req.file.mimetype || 'application/pdf' });
 
@@ -118,9 +117,7 @@ router.post('/upload', upload.single('file'), async (req, res) => {
 
     const response = await fetch(`${RAG_SERVICE_URL}/upload`, {
       method: 'POST',
-      headers: {
-        'X-User-Id': userId,
-      },
+      headers: ragHeaders(req),
       body: formData,
     });
 
@@ -140,16 +137,12 @@ router.post('/upload', upload.single('file'), async (req, res) => {
 // POST /api/rag/search - Query RAG service
 router.post('/search', async (req, res) => {
   try {
-    const userId = getUserId(req);
     const { query, filename } = req.body;
 
     const response = await fetch(`${RAG_SERVICE_URL}/search`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-User-Id': userId,
-      },
-      body: JSON.stringify({ query, filename, user_id: userId }),
+      headers: ragHeaders(req, { 'Content-Type': 'application/json' }),
+      body: JSON.stringify({ query, filename }),
     });
 
     const data = await response.json();
@@ -163,16 +156,12 @@ router.post('/search', async (req, res) => {
 // POST /api/rag/compare - Compare 2 documents side-by-side
 router.post('/compare', async (req, res) => {
   try {
-    const userId = getUserId(req);
     const { doc_a, doc_b } = req.body;
 
     const response = await fetch(`${RAG_SERVICE_URL}/compare`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-User-Id': userId,
-      },
-      body: JSON.stringify({ doc_a, doc_b, user_id: userId }),
+      headers: ragHeaders(req, { 'Content-Type': 'application/json' }),
+      body: JSON.stringify({ doc_a, doc_b }),
     });
 
     const data = await response.json();

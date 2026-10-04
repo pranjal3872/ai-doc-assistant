@@ -8,27 +8,13 @@ import DocumentHub from "@/components/DocumentHub";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import LandingPage from "@/components/LandingPage";
+import { ragFetch } from "@/lib/rag";
 
 interface Document {
   filename: string;
   pages?: number;
   chunks?: number;
 }
-
-const API_GATEWAY_URL = process.env.NEXT_PUBLIC_API_URL ? `${process.env.NEXT_PUBLIC_API_URL}/api/rag` : "http://localhost:5000/api/rag";
-const DIRECT_RAG_URL = process.env.NEXT_PUBLIC_RAG_URL || "https://ai-doc-assistant-c65n.onrender.com";
-
-const fetchWithFallback = async (endpoint: string, init?: RequestInit) => {
-  if (process.env.NEXT_PUBLIC_API_URL) {
-    try {
-      const res = await fetch(`${API_GATEWAY_URL}${endpoint}`, init);
-      if (res.ok) return res;
-    } catch (e) {
-      console.warn("API Gateway failed, falling back to RAG URL:", e);
-    }
-  }
-  return fetch(`${DIRECT_RAG_URL}${endpoint}`, init);
-};
 
 export default function Home() {
   const { user, isAuthenticated, isLoading: authLoading, logout } = useAuth();
@@ -50,11 +36,11 @@ export default function Home() {
     }
   }, [darkMode]);
 
-  // Fetch documents from API gateway or FastAPI fallback
+  // Fetch the signed-in user's documents from the API gateway
   const fetchDocuments = async () => {
     setIsLoadingDocs(true);
     try {
-      const res = await fetchWithFallback("/documents");
+      const res = await ragFetch("/documents");
       if (res.ok) {
         const data = await res.json();
         setDocuments(data.documents || []);
@@ -83,7 +69,7 @@ export default function Home() {
     formData.append("file", file);
 
     try {
-      const res = await fetchWithFallback("/upload", {
+      const res = await ragFetch("/upload", {
         method: "POST",
         body: formData,
       });
@@ -121,7 +107,7 @@ export default function Home() {
     if (!confirm(`Are you sure you want to delete ${filename}?`)) return;
 
     try {
-      const res = await fetchWithFallback(`/documents/${encodeURIComponent(filename)}`, {
+      const res = await ragFetch(`/documents/${encodeURIComponent(filename)}`, {
         method: "DELETE",
       });
 
@@ -145,7 +131,7 @@ export default function Home() {
   // Handle send message/search queries
   const handleSendMessage = async (query: string): Promise<string> => {
     try {
-      const res = await fetchWithFallback("/search", {
+      const res = await ragFetch("/search", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

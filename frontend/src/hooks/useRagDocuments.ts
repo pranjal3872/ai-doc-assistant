@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { fetchWithAuth } from "@/lib/auth";
+import { RAG_GATEWAY_URL } from "@/lib/rag";
 
 export interface DocumentItem {
   filename: string;
@@ -8,10 +10,7 @@ export interface DocumentItem {
   chunks?: number;
 }
 
-const DEFAULT_GATEWAY = process.env.NEXT_PUBLIC_API_URL ? `${process.env.NEXT_PUBLIC_API_URL}/api/rag` : "http://localhost:5000/api/rag";
-const DIRECT_RAG_URL = process.env.NEXT_PUBLIC_RAG_URL || "http://127.0.0.1:8000";
-
-export function useRagDocuments(apiGatewayUrl = DEFAULT_GATEWAY) {
+export function useRagDocuments(apiGatewayUrl = RAG_GATEWAY_URL) {
   const [documents, setDocuments] = useState<DocumentItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -20,10 +19,7 @@ export function useRagDocuments(apiGatewayUrl = DEFAULT_GATEWAY) {
     setIsLoading(true);
     setError(null);
     try {
-      let res = await fetch(`${apiGatewayUrl}/documents`);
-      if (!res.ok) {
-        res = await fetch(`${DIRECT_RAG_URL}/documents`);
-      }
+      const res = await fetchWithAuth(`${apiGatewayUrl}/documents`);
       if (res.ok) {
         const data = await res.json();
         setDocuments(data.documents || []);

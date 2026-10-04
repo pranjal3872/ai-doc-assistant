@@ -36,6 +36,8 @@ Render will read the [`render.yaml`](file:///c:/projects/ai-doc-assistant/render
    - `SMTP_USER`: `<your_smtp_email>` *(Optional fallback)*
    - `SMTP_PASS`: `<your_smtp_password>` *(Optional fallback)*
 
+   `RAG_INTERNAL_KEY` is generated on the RAG service and copied to the backend automatically by `render.yaml`. It stops anyone from calling the RAG service directly with another user's ID.
+
 
 6. Click **Apply**. Render will deploy both services!
 
@@ -57,7 +59,6 @@ Render will read the [`render.yaml`](file:///c:/projects/ai-doc-assistant/render
 
 4. Expand **Environment Variables** and add:
    - `NEXT_PUBLIC_API_URL` ➔ `https://ai-doc-backend-xxxx.onrender.com` (Your Render Backend URL)
-   - `NEXT_PUBLIC_RAG_URL` ➔ `https://ai-doc-rag-service-xxxx.onrender.com` (Your Render RAG Service URL)
 
 5. Click **Deploy**!
 
