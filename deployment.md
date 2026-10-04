@@ -55,6 +55,7 @@ The fastest and most robust way to run the full stack on any Virtual Private Ser
    - `GROQ_API_KEY`: Your Groq Cloud API Key
    - `TAVILY_API_KEY`: Your Tavily Search API Key
    - `JWT_SECRET` & `SESSION_SECRET`: Random secure secret strings
+   - `RAG_INTERNAL_KEY`: Random secure secret string shared by the backend and RAG service (both refuse document requests without it)
 
 3. **Build & Start Containers**:
    ```bash
@@ -91,6 +92,7 @@ If you prefer managed cloud infrastructure without maintaining servers:
 3. Set environment variables:
    - `GROQ_API_KEY`
    - `TAVILY_API_KEY`
+   - `RAG_INTERNAL_KEY` (random secret; the backend must use the same value)
 4. Deploy command:
    ```bash
    uvicorn main:app --host 0.0.0.0 --port $PORT
@@ -104,6 +106,7 @@ If you prefer managed cloud infrastructure without maintaining servers:
 5. Set environment variables:
    - `DATABASE_URL`
    - `RAG_SERVICE_URL` (URL of deployed RAG service from step 2)
+   - `RAG_INTERNAL_KEY` (same value as the RAG service)
    - `FRONTEND_URL` (URL of deployed Next.js app)
    - `JWT_SECRET`
    - `SESSION_SECRET`
@@ -113,7 +116,6 @@ If you prefer managed cloud infrastructure without maintaining servers:
 2. Framework Preset: **Next.js**.
 3. Set Build Environment Variables:
    - `NEXT_PUBLIC_API_URL`: `https://your-backend.onrender.com`
-   - `NEXT_PUBLIC_RAG_URL`: `https://your-rag-service.onrender.com`
 4. Click **Deploy**.
 
 ---

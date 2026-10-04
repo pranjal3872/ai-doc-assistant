@@ -1,4 +1,4 @@
-from fastapi import FastAPI, UploadFile, File, Header
+from fastapi import FastAPI, UploadFile, File, Header, HTTPException, Depends
 from fastapi.responses import StreamingResponse
 from services.pdf_service import extract_text
 from utils.chunker import chunk_text
@@ -19,6 +19,8 @@ from typing import Optional
 import shutil
 import os
 import json
+import hmac
+import tempfile
 
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -45,21 +47,35 @@ app.add_middleware(
 )
 
 
-chat_history = []
+# Shared secret set on both this service and the backend, so only the backend
+# (which authenticates users) may call this service. Without it every request
+# is refused rather than trusting a caller-supplied X-User-Id.
+RAG_INTERNAL_KEY = os.getenv("RAG_INTERNAL_KEY", "").strip()
+if not RAG_INTERNAL_KEY:
+    print("Error: RAG_INTERNAL_KEY is not set; all document requests will be refused.")
+
+
+def get_user_id(
+    x_user_id: Optional[str] = Header(None),
+    x_internal_key: Optional[str] = Header(None),
+) -> str:
+    if not RAG_INTERNAL_KEY:
+        raise HTTPException(status_code=503, detail="RAG_INTERNAL_KEY is not configured")
+    if not hmac.compare_digest(x_internal_key or "", RAG_INTERNAL_KEY):
+        raise HTTPException(status_code=401, detail="Invalid internal key")
+    if not x_user_id or not x_user_id.strip():
+        raise HTTPException(status_code=401, detail="Missing user ID")
+    return x_user_id.strip()
 
 
 class SearchRequest(BaseModel):
     query: str
     filename: Optional[str] = None
-    user_id: Optional[str] = None
 
 class CompareRequest(BaseModel):
     doc_a: str
     doc_b: str
-    user_id: Optional[str] = None
 
-UPLOAD_DIR = "uploads"
-os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 
 @app.get("/")
@@ -69,8 +85,7 @@ def home():
     }
 
 @app.get("/documents")
-async def documents(x_user_id: Optional[str] = Header(None)):
-    user_id = x_user_id or "default_user"
+async def documents(user_id: str = Depends(get_user_id)):
     docs = get_documents(user_id=user_id)
 
     return {
@@ -78,8 +93,7 @@ async def documents(x_user_id: Optional[str] = Header(None)):
     }
 
 @app.delete("/documents/{filename}")
-async def remove_document(filename: str, x_user_id: Optional[str] = Header(None)):
-    user_id = x_user_id or "default_user"
+async def remove_document(filename: str, user_id: str = Depends(get_user_id)):
     delete_document(filename, user_id=user_id)
 
     return {
@@ -87,23 +101,13 @@ async def remove_document(filename: str, x_user_id: Optional[str] = Header(None)
     }
 
 @app.get("/documents/{filename}")
-async def get_document_content(filename: str, x_user_id: Optional[str] = Header(None)):
+async def get_document_content(filename: str, user_id: str = Depends(get_user_id)):
     from database.qdrant import client, COLLECTION_NAME, Filter, FieldCondition, MatchValue
 
-    user_id = x_user_id or "default_user"
     must_conditions = [
-        FieldCondition(
-            key="filename",
-            match=MatchValue(value=filename)
-        )
+        FieldCondition(key="filename", match=MatchValue(value=filename)),
+        FieldCondition(key="user_id", match=MatchValue(value=user_id)),
     ]
-    if user_id:
-        must_conditions.append(
-            FieldCondition(
-                key="user_id",
-                match=MatchValue(value=user_id)
-            )
-        )
 
     response = client.scroll(
         collection_name=COLLECTION_NAME,
@@ -141,23 +145,13 @@ async def get_document_content(filename: str, x_user_id: Optional[str] = Header(
     }
 
 @app.get("/documents/{filename}/summary")
-async def get_document_summary(filename: str, x_user_id: Optional[str] = Header(None)):
+async def get_document_summary(filename: str, user_id: str = Depends(get_user_id)):
     from database.qdrant import client, COLLECTION_NAME, Filter, FieldCondition, MatchValue
 
-    user_id = x_user_id or "default_user"
     must_conditions = [
-        FieldCondition(
-            key="filename",
-            match=MatchValue(value=filename)
-        )
+        FieldCondition(key="filename", match=MatchValue(value=filename)),
+        FieldCondition(key="user_id", match=MatchValue(value=user_id)),
     ]
-    if user_id:
-        must_conditions.append(
-            FieldCondition(
-                key="user_id",
-                match=MatchValue(value=user_id)
-            )
-        )
 
     response = client.scroll(
         collection_name=COLLECTION_NAME,
@@ -183,15 +177,23 @@ async def startup():
 
 
 @app.post("/upload")
-async def upload_pdf(file: UploadFile = File(...), x_user_id: Optional[str] = Header(None)):
-    user_id = x_user_id or "default_user"
-    file_path = os.path.join(UPLOAD_DIR, file.filename)
+async def upload_pdf(file: UploadFile = File(...), user_id: str = Depends(get_user_id)):
+    # Strip any directory parts from the client-supplied name
+    filename = os.path.basename(file.filename or "").strip()
+    if not filename:
+        raise HTTPException(status_code=400, detail="Invalid filename")
 
-    with open(file_path, "wb") as buffer:
-        shutil.copyfileobj(file.file, buffer)
+    # Parse from a private temp file so users never share or overwrite a path
+    suffix = os.path.splitext(filename)[1]
+    with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
+        shutil.copyfileobj(file.file, tmp)
+        file_path = tmp.name
 
-    # Extract page-wise text
-    pages = extract_text(file_path)
+    try:
+        # Extract page-wise text
+        pages = extract_text(file_path)
+    finally:
+        os.remove(file_path)
 
     all_chunks = []
     all_metadata = []
@@ -214,13 +216,13 @@ async def upload_pdf(file: UploadFile = File(...), x_user_id: Optional[str] = He
     store_embeddings(
         all_chunks,
         embeddings,
-        file.filename,
+        filename,
         all_metadata,
         user_id=user_id,
     )
 
     return {
-        "filename": file.filename,
+        "filename": filename,
         "pages": len(pages),
         "chunks": len(all_chunks),
         "first_chunk": all_chunks[0] if all_chunks else ""
@@ -228,8 +230,7 @@ async def upload_pdf(file: UploadFile = File(...), x_user_id: Optional[str] = He
 
 
 @app.post("/compare")
-async def compare_documents(request: CompareRequest, x_user_id: Optional[str] = Header(None)):
-    user_id = request.user_id or x_user_id or "default_user"
+async def compare_documents(request: CompareRequest, user_id: str = Depends(get_user_id)):
     from database.qdrant import client, COLLECTION_NAME, Filter, FieldCondition, MatchValue
 
     def get_sample(fn):
@@ -297,8 +298,7 @@ Produce a structured, comparative analysis:
 
 
 @app.post("/search")
-async def search(request: SearchRequest, x_user_id: Optional[str] = Header(None)):
-    user_id = request.user_id or x_user_id or "default_user"
+async def search(request: SearchRequest, user_id: str = Depends(get_user_id)):
     clean_q = request.query.strip().lower()
 
     # Handle simple conversational greetings
@@ -359,4 +359,4 @@ async def search(request: SearchRequest, x_user_id: Optional[str] = Header(None)
     return {
         "query": request.query,
         "answer": answer,
-    }
+    }

@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useRef, useState } from "react";
+import { ragFetch } from "@/lib/rag";
 
 interface Document {
   filename: string;
@@ -80,12 +81,8 @@ export default function DocumentHub({
     setIsComparing(true);
     setComparisonResult(null);
 
-    const API_URL = process.env.NEXT_PUBLIC_API_URL
-      ? `${process.env.NEXT_PUBLIC_API_URL}/api/rag/compare`
-      : "http://localhost:5000/api/rag/compare";
-
     try {
-      const res = await fetch(API_URL, {
+      const res = await ragFetch("/compare", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

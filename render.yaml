@@ -12,6 +12,8 @@ services:
         sync: false
       - key: TAVILY_API_KEY
         sync: false
+      - key: RAG_INTERNAL_KEY
+        generateValue: true
       - key: PYTHON_VERSION
         value: 3.11.0
 
@@ -26,11 +28,14 @@ services:
     envVars:
       - key: DATABASE_URL
         sync: false
+      # Public https URL of ai-doc-rag-service (free services can't use private networking)
       - key: RAG_SERVICE_URL
+        sync: false
+      - key: RAG_INTERNAL_KEY
         fromService:
           type: web
           name: ai-doc-rag-service
-          property: host
+          envVarKey: RAG_INTERNAL_KEY
       - key: FRONTEND_URL
         sync: false
       - key: SESSION_SECRET

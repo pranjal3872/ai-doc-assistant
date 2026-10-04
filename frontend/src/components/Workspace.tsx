@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { ChatInput } from "./ChatInput";
+import { ragFetch } from "@/lib/rag";
 
 interface Chunk {
   id: number;
@@ -30,21 +31,6 @@ interface Document {
   pages?: number;
   chunks?: number;
 }
-
-const API_GATEWAY_URL = process.env.NEXT_PUBLIC_API_URL ? `${process.env.NEXT_PUBLIC_API_URL}/api/rag` : "http://localhost:5000/api/rag";
-const DIRECT_RAG_URL = process.env.NEXT_PUBLIC_RAG_URL || "https://ai-doc-assistant-c65n.onrender.com";
-
-const fetchWithFallback = async (endpoint: string, init?: RequestInit) => {
-  if (process.env.NEXT_PUBLIC_API_URL) {
-    try {
-      const res = await fetch(`${API_GATEWAY_URL}${endpoint}`, init);
-      if (res.ok) return res;
-    } catch (e) {
-      console.warn("API Gateway failed, falling back to RAG URL:", e);
-    }
-  }
-  return fetch(`${DIRECT_RAG_URL}${endpoint}`, init);
-};
 
 interface WorkspaceProps {
   selectedDoc: Document | null;
@@ -109,7 +95,7 @@ export default function Workspace({
     const fetchDocContent = async () => {
       setIsLoadingDoc(true);
       try {
-        const res = await fetchWithFallback(`/documents/${encodeURIComponent(selectedDoc.filename)}`);
+        const res = await ragFetch(`/documents/${encodeURIComponent(selectedDoc.filename)}`);
         if (res.ok) {
           const data = await res.json();
           setDocDetail(data);
@@ -149,7 +135,7 @@ export default function Workspace({
     const fetchSummary = async () => {
       setIsLoadingSummary(true);
       try {
-        const res = await fetchWithFallback(`/documents/${encodeURIComponent(selectedDoc.filename)}/summary`);
+        const res = await ragFetch(`/documents/${encodeURIComponent(selectedDoc.filename)}/summary`);
         if (res.ok) {
           const data = await res.json();
           setDocSummary(data.summary);
