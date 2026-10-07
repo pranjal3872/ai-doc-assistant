@@ -93,6 +93,7 @@ If you prefer managed cloud infrastructure without maintaining servers:
    - `GROQ_API_KEY`
    - `TAVILY_API_KEY`
    - `RAG_INTERNAL_KEY` (random secret; the backend must use the same value)
+   - `QDRANT_URL` and `QDRANT_API_KEY` from a [Qdrant Cloud](https://cloud.qdrant.io) cluster (the free tier is enough). Without them, vectors are stored on the service's local disk, which Render and Railway wipe on every redeploy, so all uploaded documents are lost.
 4. Deploy command:
    ```bash
    uvicorn main:app --host 0.0.0.0 --port $PORT

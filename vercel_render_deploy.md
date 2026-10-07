@@ -26,6 +26,8 @@ Render will read the [`render.yaml`](file:///c:/projects/ai-doc-assistant/render
    #### For `ai-doc-rag-service`:
    - `GROQ_API_KEY`: `<your_groq_api_key_from_groq_console>`
    - `TAVILY_API_KEY`: `<your_tavily_api_key_from_tavily_dashboard>`
+   - `QDRANT_URL`: `<your_qdrant_cloud_cluster_url>`, e.g. `https://xxxx.cloud.qdrant.io:6333` *(Create a free cluster at [cloud.qdrant.io](https://cloud.qdrant.io). Render's disk is wiped on every deploy, so without this all uploaded documents disappear.)*
+   - `QDRANT_API_KEY`: `<your_qdrant_cloud_api_key>`
 
    #### For `ai-doc-backend`:
    - `DATABASE_URL`: `<your_neon_postgresql_database_url>`

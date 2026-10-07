@@ -14,6 +14,12 @@ services:
         sync: false
       - key: RAG_INTERNAL_KEY
         generateValue: true
+      # Hosted Qdrant (e.g. Qdrant Cloud). Render's disk is wiped on every
+      # deploy, so without these all uploaded documents are lost.
+      - key: QDRANT_URL
+        sync: false
+      - key: QDRANT_API_KEY
+        sync: false
       - key: PYTHON_VERSION
         value: 3.11.0
 

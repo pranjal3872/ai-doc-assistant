@@ -1,4 +1,6 @@
 from qdrant_client import QdrantClient
+from dotenv import load_dotenv
+import os
 import uuid
 from qdrant_client.models import (
     Distance,
@@ -7,14 +9,37 @@ from qdrant_client.models import (
     Filter,
     FieldCondition,
     MatchValue,
+    PayloadSchemaType,
 )
 
-# Qdrant database initialization with resilient fallback
-try:
-    client = QdrantClient(path="./qdrant_db")
-except Exception as e:
-    print(f"Warning: Could not initialize local path ./qdrant_db ({e}), falling back to in-memory Qdrant client.")
-    client = QdrantClient(location=":memory:")
+load_dotenv()
+
+QDRANT_URL = os.getenv("QDRANT_URL", "").strip()
+QDRANT_API_KEY = os.getenv("QDRANT_API_KEY", "").strip() or None
+QDRANT_PATH = "./qdrant_db"
+
+
+def _create_client():
+    # Hosted Qdrant (e.g. Qdrant Cloud) keeps documents across redeploys.
+    # Don't fall back to local storage if it's unreachable: that would
+    # silently write to a disk that gets wiped again.
+    if QDRANT_URL:
+        print(f"Using hosted Qdrant at {QDRANT_URL}")
+        return QdrantClient(url=QDRANT_URL, api_key=QDRANT_API_KEY, timeout=30)
+
+    print(
+        f"QDRANT_URL is not set; storing vectors locally in {QDRANT_PATH}. "
+        "This is fine for development, but on hosts with ephemeral disks "
+        "(like Render) every redeploy wipes uploaded documents."
+    )
+    try:
+        return QdrantClient(path=QDRANT_PATH)
+    except Exception as e:
+        print(f"Warning: Could not initialize local path {QDRANT_PATH} ({e}), falling back to in-memory Qdrant client.")
+        return QdrantClient(location=":memory:")
+
+
+client = _create_client()
 
 COLLECTION_NAME = "documents"
 
@@ -33,6 +58,15 @@ def create_collection():
         print("Collection created!")
     else:
         print("Collection already exists.")
+
+    # Every query filters on these fields. Qdrant Cloud rejects filters on
+    # unindexed fields, and the indexes keep lookups fast. Safe to re-run.
+    for field in ("user_id", "filename"):
+        client.create_payload_index(
+            collection_name=COLLECTION_NAME,
+            field_name=field,
+            field_schema=PayloadSchemaType.KEYWORD,
+        )
 
 def store_embeddings(chunks, embeddings, filename, metadata, user_id="default_user"):
     points = []
